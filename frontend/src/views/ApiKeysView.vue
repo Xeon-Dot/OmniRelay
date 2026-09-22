@@ -7,105 +7,57 @@
       </button>
     </PageHeader>
 
-    <div class="table-card">
-      <v-data-table
-        :headers="headers"
-        :items="store.apiKeys"
-        :loading="store.loading"
-        density="comfortable"
-        hide-default-footer
-        :items-per-page="-1"
-      >
-        <template #item.key_prefix="{ item }">
-          <MonoTag>{{ item.key_prefix }}</MonoTag>
-        </template>
-        <template #item.is_active="{ item }">
-          <StatusChip :variant="item.is_active ? 'on' : 'off'">
-            {{ item.is_active ? $t("apiKeys.active") : $t("apiKeys.revoked") }}
-          </StatusChip>
-        </template>
-        <template #item.last_used_at="{ item }">
-          <span class="dim-text">
-            {{
-              item.last_used_at
-                ? new Date(item.last_used_at).toLocaleString()
-                : $t("apiKeys.never")
-            }}
-          </span>
-        </template>
-        <template #item.rate_limit_rpm="{ item }">
-          <span class="mono-val">{{
-            item.rate_limit_rpm === 0 ? "∞" : item.rate_limit_rpm
-          }}</span>
-        </template>
-        <template #item.created_at="{ item }">
-          <span class="dim-text">{{
-            new Date(item.created_at).toLocaleDateString()
-          }}</span>
-        </template>
-        <template #item.actions="{ item }">
-          <div class="row-actions">
-            <button
-              v-if="item.is_active"
-              class="row-btn row-btn--danger"
-              title="Revoke key"
-              @click="handleDelete(item.id)"
-            >
-              <v-icon size="15">mdi-block-helper</v-icon>
-            </button>
-          </div>
-        </template>
-        <template #no-data>
-          <EmptyState icon="mdi-key-off-outline" :text="$t('apiKeys.noKeys')" />
-        </template>
-      </v-data-table>
-    </div>
-
-    <!-- Mobile cards -->
-    <div class="mobile-cards">
-      <MobileDataCard
-        v-for="k in store.apiKeys"
-        :key="k.id"
-        :items="[
-          { label: $t('apiKeys.name'), value: k.name },
-          { label: $t('apiKeys.keyPrefix'), value: k.key_prefix },
-          {
-            label: $t('apiKeys.status'),
-            value: k.is_active ? $t('apiKeys.active') : $t('apiKeys.revoked'),
-          },
-          {
-            label: $t('apiKeys.rateLimit'),
-            value: k.rate_limit_rpm === 0 ? '∞' : String(k.rate_limit_rpm),
-          },
-          {
-            label: $t('apiKeys.lastUsed'),
-            value: k.last_used_at
-              ? new Date(k.last_used_at).toLocaleString()
-              : $t('apiKeys.never'),
-          },
-          {
-            label: $t('apiKeys.created'),
-            value: new Date(k.created_at).toLocaleDateString(),
-          },
-        ]"
-      >
-        <template #actions>
+    <v-data-table
+      :headers="headers"
+      :items="store.apiKeys"
+      :loading="store.loading"
+      density="comfortable"
+      hide-default-footer
+      :items-per-page="-1"
+    >
+      <template #item.key_prefix="{ item }">
+        <MonoTag>{{ item.key_prefix }}</MonoTag>
+      </template>
+      <template #item.is_active="{ item }">
+        <StatusChip :variant="item.is_active ? 'on' : 'off'">
+          {{ item.is_active ? $t("apiKeys.active") : $t("apiKeys.revoked") }}
+        </StatusChip>
+      </template>
+      <template #item.last_used_at="{ item }">
+        <span class="dim-text">
+          {{
+            item.last_used_at
+              ? new Date(item.last_used_at).toLocaleString()
+              : $t("apiKeys.never")
+          }}
+        </span>
+      </template>
+      <template #item.rate_limit_rpm="{ item }">
+        <span class="mono-val">{{
+          item.rate_limit_rpm === 0 ? "∞" : item.rate_limit_rpm
+        }}</span>
+      </template>
+      <template #item.created_at="{ item }">
+        <span class="dim-text">{{
+          new Date(item.created_at).toLocaleDateString()
+        }}</span>
+      </template>
+      <template #item.actions="{ item }">
+        <div class="row-actions">
           <button
-            v-if="k.is_active"
+            v-if="item.is_active"
             class="row-btn row-btn--danger"
             title="Revoke key"
-            @click="handleDelete(k.id)"
+            @click="handleDelete(item.id)"
           >
             <v-icon size="15">mdi-block-helper</v-icon>
           </button>
-        </template>
-      </MobileDataCard>
-      <EmptyState
-        v-if="!store.apiKeys.length"
-        icon="mdi-key-off-outline"
-        :text="$t('apiKeys.noKeys')"
-      />
-    </div>
+        </div>
+      </template>
+      <template #no-data>
+        <EmptyState icon="mdi-key-off-outline" :text="$t('apiKeys.noKeys')" />
+      </template>
+    </v-data-table>
 
     <!-- Create dialog -->
     <v-dialog
@@ -210,7 +162,6 @@
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useApiKeysStore } from "../stores/apikeys";
-import MobileDataCard from "../components/MobileDataCard.vue";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusChip from "../components/StatusChip.vue";
@@ -349,5 +300,11 @@ onMounted(() => {
   color: #e8a020;
   border-color: rgba(232, 160, 32, 0.3);
   background: rgba(232, 160, 32, 0.08);
+}
+
+@media (max-width: 768px) {
+  .v-data-table {
+    display: block;
+  }
 }
 </style>

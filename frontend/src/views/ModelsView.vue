@@ -7,124 +7,69 @@
       </button>
     </PageHeader>
 
-    <div class="table-card">
-      <v-data-table
-        :headers="headers"
-        :items="store.models"
-        :loading="store.loading"
-        density="comfortable"
-        hide-default-footer
-        :items-per-page="-1"
-      >
-        <template #item.full_id="{ item }">
-          <MonoTag>{{ item.provider_key }}/{{ item.model_id }}</MonoTag>
-        </template>
-        <template #item.is_manual="{ item }">
-          <StatusChip :variant="item.is_manual ? 'warning' : 'on'">
-            {{ item.is_manual ? $t("models.manual") : $t("models.auto") }}
-          </StatusChip>
-        </template>
-        <template #item.pricing="{ item }">
-          <div class="pricing-cell">
-            <span class="pricing-pair">
-              <span class="pricing-key">{{ $t("models.pricingIn") }}</span>
-              <span class="pricing-val">${{ item.input_price_per_1mtok }}</span>
-            </span>
-            <span class="pricing-sep">·</span>
-            <span class="pricing-pair">
-              <span class="pricing-key">{{ $t("models.pricingOut") }}</span>
-              <span class="pricing-val"
-                >${{ item.output_price_per_1mtok }}</span
-              >
-            </span>
-            <span v-if="item.cache_read_price_per_1mtok" class="pricing-sep"
-              >·</span
+    <v-data-table
+      :headers="headers"
+      :items="store.models"
+      :loading="store.loading"
+      density="comfortable"
+      hide-default-footer
+      :items-per-page="-1"
+    >
+      <template #item.full_id="{ item }">
+        <MonoTag>{{ item.provider_key }}/{{ item.model_id }}</MonoTag>
+      </template>
+      <template #item.is_manual="{ item }">
+        <StatusChip :variant="item.is_manual ? 'warning' : 'on'">
+          {{ item.is_manual ? $t("models.manual") : $t("models.auto") }}
+        </StatusChip>
+      </template>
+      <template #item.pricing="{ item }">
+        <div class="pricing-cell">
+          <span class="pricing-pair">
+            <span class="pricing-key">{{ $t("models.pricingIn") }}</span>
+            <span class="pricing-val">${{ item.input_price_per_1mtok }}</span>
+          </span>
+          <span class="pricing-sep">·</span>
+          <span class="pricing-pair">
+            <span class="pricing-key">{{ $t("models.pricingOut") }}</span>
+            <span class="pricing-val">${{ item.output_price_per_1mtok }}</span>
+          </span>
+          <span v-if="item.cache_read_price_per_1mtok" class="pricing-sep"
+            >·</span
+          >
+          <span v-if="item.cache_read_price_per_1mtok" class="pricing-pair">
+            <span class="pricing-key">{{ $t("models.pricingCache") }}</span>
+            <span class="pricing-val"
+              >${{ item.cache_read_price_per_1mtok }}</span
             >
-            <span v-if="item.cache_read_price_per_1mtok" class="pricing-pair">
-              <span class="pricing-key">{{ $t("models.pricingCache") }}</span>
-              <span class="pricing-val"
-                >${{ item.cache_read_price_per_1mtok }}</span
-              >
-            </span>
-          </div>
-        </template>
-        <template #item.context_window="{ item }">
-          <span class="mono-val">{{
-            item.context_window
-              ? (item.context_window / 1000).toFixed(0) + "k"
-              : "—"
-          }}</span>
-        </template>
-        <template #item.actions="{ item }">
-          <div class="row-actions">
-            <button class="row-btn" title="Edit" @click="openEditDialog(item)">
-              <v-icon size="15">mdi-pencil-outline</v-icon>
-            </button>
-            <button
-              class="row-btn row-btn--danger"
-              title="Delete"
-              @click="handleDelete(item.id)"
-            >
-              <v-icon size="15">mdi-delete-outline</v-icon>
-            </button>
-          </div>
-        </template>
-        <template #no-data>
-          <EmptyState icon="mdi-cube-off-outline" :text="$t('models.noModels')" />
-        </template>
-      </v-data-table>
-    </div>
-
-    <!-- Mobile cards -->
-    <div class="mobile-cards">
-      <MobileDataCard
-        v-for="m in store.models"
-        :key="m.id"
-        :items="[
-          {
-            label: $t('models.model'),
-            value: m.provider_key + '/' + m.model_id,
-          },
-          { label: $t('models.provider'), value: m.provider_key },
-          {
-            label: $t('models.source'),
-            value: m.is_manual ? $t('models.manual') : $t('models.auto'),
-          },
-          {
-            label: $t('models.pricing'),
-            value:
-              '$' +
-              (m.input_price_per_1mtok ?? 0) +
-              ' / $' +
-              (m.output_price_per_1mtok ?? 0),
-          },
-          {
-            label: $t('models.context'),
-            value: m.context_window
-              ? (m.context_window / 1000).toFixed(0) + 'k'
-              : '—',
-          },
-        ]"
-      >
-        <template v-if="isAdmin" #actions>
-          <button class="row-btn" title="Edit" @click="openEditDialog(m)">
+          </span>
+        </div>
+      </template>
+      <template #item.context_window="{ item }">
+        <span class="mono-val">{{
+          item.context_window
+            ? (item.context_window / 1000).toFixed(0) + "k"
+            : "—"
+        }}</span>
+      </template>
+      <template #item.actions="{ item }">
+        <div class="row-actions">
+          <button class="row-btn" title="Edit" @click="openEditDialog(item)">
             <v-icon size="15">mdi-pencil-outline</v-icon>
           </button>
           <button
             class="row-btn row-btn--danger"
             title="Delete"
-            @click="handleDelete(m.id)"
+            @click="handleDelete(item.id)"
           >
             <v-icon size="15">mdi-delete-outline</v-icon>
           </button>
-        </template>
-      </MobileDataCard>
-      <EmptyState
-        v-if="!store.models.length"
-        icon="mdi-cube-off-outline"
-        :text="$t('models.noModels')"
-      />
-    </div>
+        </div>
+      </template>
+      <template #no-data>
+        <EmptyState icon="mdi-cube-off-outline" :text="$t('models.noModels')" />
+      </template>
+    </v-data-table>
 
     <v-dialog
       v-model="dialog"
@@ -254,7 +199,6 @@ import { useI18n } from "vue-i18n";
 import { useModelsStore } from "../stores/models";
 import { useProvidersStore } from "../stores/providers";
 import { useAuthStore } from "../stores/auth";
-import MobileDataCard from "../components/MobileDataCard.vue";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusChip from "../components/StatusChip.vue";
@@ -438,6 +382,9 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .price-grid {
     grid-template-columns: 1fr;
+  }
+  .v-data-table {
+    display: block;
   }
 }
 </style>
