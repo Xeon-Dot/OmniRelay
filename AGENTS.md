@@ -1,181 +1,78 @@
-# Repository Guidelines
+# OmniRelay — Agent 작업 지침
 
-## Project Structure & Module Organization
+제품 개요·API 사용법은 `README.md` 참고. 이 파일에는 README에 없거나 README가 틀린, 세션에서 반드시 알아야 할 내용만 담는다.
 
-OmniRelay is a single-Docker-image AI proxy: Go backend (Gin) + Vue 3 dashboard (Vuetify), served behind Caddy as reverse proxy.
+## 명령어 (cwd 주의)
 
-- `backend/` — Go module `omnirelay` (Go 1.25), entrypoint `cmd/server/`
-  - `internal/handlers/` — thin Gin HTTP handlers
-  - `internal/proxy/` — provider adapters (OpenAI, Anthropic, LM Studio, Ollama, Gemini), shared request/usage helpers in `proxy_helpers.go` and `usage_log.go`
-  - `internal/service/` — business logic (auth, providers, models, usage); `provider_service.go` is the single source of truth for upstream model-list fetching (`FetchModelsFromProvider`)
-  - `internal/database/` — SQLite via `modernc.org/sqlite` (pure Go, no CGO); `migrations.go` auto-runs on startup
-  - `internal/middleware/` — JWT and API key auth
-  - `internal/passthrough/` — raw URL-embedded relay (`/https://host/v1/...`), performance-only, deliberately bypasses Gin and the proxy/adapter layer
-  - `internal/models/` — shared structs
-  - `internal/crypto/` — AES encryption helpers for provider API keys
-  - `internal/config/` — environment config loading
-- `frontend/` — Vue 3 + Vuetify 3 + Pinia + Chart.js, two-space indentation
-  - `frontend/Caddyfile` — Caddy v2 config used in Docker image (/etc/caddy/Caddyfile)
-- `Dockerfile` — single multi-stage build: frontend (Bun) → backend (Go) → runtime (caddy:2-alpine)
-- `compose.yml` — `docker compose up -d` runs the published `ghcr.io/nergis0318/omnirelay:latest` image
-- `OpenAPI-Specification/` — provider reference specs
-
-## Build & Verify Commands
+`backend/`에서:
 
 ```bash
-# Backend (from backend/)
-go run ./cmd/server/
-go build -o omnirelay ./cmd/server/
-go test ./...
-go vet ./...              # always run before claiming a fix works
-
-# Frontend (from frontend/) — use Bun, not npm/yarn/pnpm
-bun install
-bun run dev               # port 5173, proxies /v1 and /admin to :8080
-bun run build             # vue-tsc --noEmit + vite build → dist/
-bun run preview
+go run ./cmd/server/              # 개발 서버 (:8080)
+go vet ./... && go test ./...     # 검증. 단일 테스트: go test ./internal/proxy/ -run TestXyz
 ```
 
-`bun run build` runs `vue-tsc --noEmit` for type checking before the Vite build. The README incorrectly references `npm install`; Bun is the actual package manager (see `bun.lock`, Dockerfile).
-
-## Docker
+`frontend/`에서 (bun 전용 — npm/yarn/pnpm 금지):
 
 ```bash
-docker build -t omnirelay .
-docker run -p 80:80 omnirelay
-
-# Or use the published image via Compose:
-docker compose up -d
+bun install                       # 의존성 설치 + bun.lock 갱신
+bun run build                     # 유일한 검증: vue-tsc --noEmit 타입체크 후 vite build
+bun run dev                       # :5173
 ```
 
-The Dockerfile builds a **single container** with Caddy + the Go backend. `compose.yml` at the repo root pulls `ghcr.io/nergis0318/omnirelay:latest` (no local build) and mounts a named volume for the SQLite DB. Backend and Caddy run via shell entrypoint: `/app/omnirelay & caddy run --config /etc/caddy/Caddyfile --adapter caddyfile`.
+- 테스트 러너·lint·format 스크립트가 없다 (prettier는 의존성에만 있고 실행 스크립트·설정 파일 없음). 프론트 검증은 `bun run build`뿐.
+- `Dockerfile`는 `bun install --frozen-lockfile`을 쓴다 — `package.json` 변경 후 `bun install`로 lockfile을 갱신하지 않으면 이미지 빌드가 실패한다.
+- 완료 전: 백엔드 `go vet ./... && go test ./...`, 프론트 `bun run build` 둘 다 실제 통과 출력을 확인.
+- CI(`.github/workflows/docker.yml`)는 Docker 이미지만 빌드하고 테스트·린트를 돌리지 않는다 — 로컬 검증이 유일한 방어선이다.
 
-Environment in container:
+## README 불일치 (코드가 정답)
 
-- `LISTEN_ADDR=:8080` — backend listen address
-- `DATABASE_PATH=/app/data/omnirelay.db` — SQLite DB location
+README는 패스스루(URL 릴레이) 기능을 아직 상세히 설명하지만 commit `13c5423`에서 제거됐다. 아래는 전부 존재하지 않는다:
 
-CI (`.github/workflows/docker.yml`) builds multi-arch (amd64/arm64) and pushes to `ghcr.io` on main push and tags.
+- `internal/passthrough/`, `PassthroughView.vue`, `passthrough_logs` 테이블, `PASSTHROUGH_*` 환경변수
+- `OpenAPI-Specification/` 디렉터리
+- README의 마이그레이션 버전 표기(v9/v14 — 실제 최신은 v17), 뷰 개수 표기
 
-## Caddyfile Gotchas
+실제 환경변수는 `backend/internal/config/config.go`에 있는 `LISTEN_ADDR`, `DATABASE_PATH`, `JWT_SECRET`, `ENCRYPT_KEY`, `CORS_ORIGINS` 다섯 개뿐. 설정·동작은 항상 코드/설정 파일을 신뢰할 것.
 
-The Caddyfile in `frontend/Caddyfile` uses Caddy v2 syntax. **Do NOT use `path_prefix`** — Caddy v2 does not have a built-in `path_prefix` named matcher. Use the `path` matcher with wildcards instead:
+## 아키텍처 배선 (파일명으로 못 찾는 사실)
 
-```caddy
-# Correct
-@admin path /admin /admin/*
-reverse_proxy @admin localhost:8080
+- 단일 컨테이너: Bun 빌드 → Go 정적 바이너리 → `caddy:2-alpine`. `Dockerfile` ENTRYPOINT가 Go 서버와 Caddy를 셸에서 함께 띄운다.
+- 새 API 경로는 **세 곳**에 등록해야 완전하다:
+  1. `backend/cmd/server/main.go` — 실제 Gin 라우트
+  2. `frontend/Caddyfile` — `:80`에서 `:8080`으로 프록시할 패턴. 빠지면 SPA fallback이 응답한다.
+  3. `frontend/vite.config.ts` — 개발 프록시. 현재 `/v1`, `/admin`만 프록시하므로, **path-routed 요청(`/openai/v1/...`)은 개발 중 `:5173`이 아니라 `:8080`으로 직접 호출**해야 한다.
+- `frontend/Caddyfile` 규칙:
+  - 매처는 `path`/`path_regexp`만 사용. `path_prefix` 매처는 stock `caddy:2-alpine`에 없어 빌드/기동이 죽는다.
+  - 새로 추가하는 reverse_proxy 블록에는 반드시 `flush_interval -1` — 없으면 SSE 스트리밍이 버퍼링된다.
 
-# Wrong — will fail with "module not registered: http.matchers.path_prefix"
-@admin path_prefix /admin/
-```
+## 데이터베이스 마이그레이션
 
-The Docker image uses `caddy:2-alpine` which does not include third-party matcher modules.
+`backend/internal/database/migrations.go` — 시작 시 자동 실행, append-only.
 
-## Database Migrations
+- 컬럼 추가는 반드시 멱등하게: SQLite에 `ADD COLUMN IF NOT EXISTS`가 없으므로 `hasColumn()`(PRAGMA table_info)로 감싼다. v1부터 쓰인 테이블의 새 컬럼도 새 마이그레이션이 필요하다.
+- 버전 번호를 재사용·재정렬하지 말 것. 목록에 v15·v16이 없는 것은 의도적(구 passthrough 마이그레이션 제거). 이미 찍힌 DB가 새 구조를 건너뛰지 않도록 v14와 v17이 같은 `ensureProviderAPIKeys`를 공유한다. 새 마이그레이션은 항상 맨 뒤에 현재 최대 버전 + 1로 추가한다.
 
-Migrations auto-run on startup via `internal/database/migrations.go`. SQLite schema using `modernc.org/sqlite` (CGO-free).
+## 운영·보안
 
-**Critical rule when modifying tables**: If you add a column to a table that was created in migration v1, you ALSO need a new migration for existing databases. Make the new migration **idempotent** by checking if the column exists first (use `PRAGMA table_info(tablename)`), since SQLite lacks `ALTER TABLE ADD COLUMN IF NOT EXISTS`.
+- `GIN_MODE=release`에서 `JWT_SECRET`/`ENCRYPT_KEY`가 기본값이면 기동 즉시 Fatal이다 (`config.go`). 프로덕션 배포 시 `ENCRYPT_KEY`는 64자 hex(`openssl rand -hex 32`).
+- API 키 인증은 `Authorization: Bearer om-ni-...`와 `x-api-key` 헤더 둘 다 받는다 (`middleware/apikey_auth.go`).
 
-Migration v1 creates: `users`, `providers`, `models`, `api_keys`, `usage_logs`.
-Migration v2 creates: `schema_migrations` tracking table.
-Migration v3 adds: `users.email`.
-Migration v4 adds: `providers.user_id` (idempotent).
-Migration v14 creates: `passthrough_logs` (relay timings only — no token or cost columns).
+## 프록시/스트리밍 (가장 오류가 잦은 영역)
 
-## URL Passthrough Relay
+- OpenAI 계열(openai/lmstudio/ollama) 스트리밍은 사용량을 받으려면 요청 본문에 `stream_options: {include_usage: true}` 주입이 필요하다. `isOpenAICompat()`이 게이트이며 **주입 지점은 셋 다** 챙겨야 한다: `chat_handler.go`의 `executeChat`, `proxy.go`의 `executeMessages`, `proxy.go`의 `handlePathRoutedProxy`.
+- 캐시 토큰 필드가 제공자마다 다르다 — Anthropic `cache_creation_input_tokens`/`cache_read_input_tokens`, OpenAI `prompt_tokens_details.cached_tokens`, Gemini `usageMetadata.cached_content_token_count`. 추출은 `extractCacheTokens()`(`cache.go`)와 비스트리밍 종합 `extractUsageFromRawResponse()`(`cost.go` — 흔히 오해하는 `http_helpers.go`가 아니다). provider 분기마다 캐시 토큰을 빠뜨리면 과거에 실제로 누락 버그가 난다.
+- 스트림 핸들러는 네 개다: `handleStreamResponse`(OpenAI SSE), `handleMessagesStreamResponse`(Anthropic SSE), `handleResponsesStream`(`/v1/responses` 전용), `handleRawStreamResponse`(미확인 포맷 — 지연만 기록). path-routed 요청도 알려진 어댑터면 앞의 둘 중 하나로 dispatch해야 토큰·비용이 기록된다.
+- 다중 업스트림 키 failover: `tryKeys`(`upstream.go`)가 클라이언트가 아무 바이트도 받기 전에 네트워크 오류/401/403/429/5xx에서 다음 키로 재시도하고, 401/403은 해당 키를 자동 비활성화한다. 라운드로빈 커서는 인메모리다 (멀티프로세스가 되면 저장 필요 — 코드에 `// ponytail:` 주석). `usage_logs`에는 최종 시도 1건만 기록한다.
+- 모델 추가 시 가격을 `https://models.dev/api.json`에서 자동 채운다 (`service/modelsdev.go`, 실행 중 네트워크 fetch·10s 타임아웃). 실패해도 가격 0으로 진행하니 장애가 아닌 것으로 오인하지 말 것.
 
-`/https://api.openai.com/v1/chat/completions` (the whole upstream URL inside the path) relays byte-for-byte and measures **performance only**. Non-obvious constraints:
+## 프론트엔드
 
-- The relay is mounted **in front of** the Gin engine in `cmd/server/main.go` (`http.Server.Handler = passthrough.New(...)` wrapping `r`), not as a Gin route. A `/*catchall` route cannot coexist with `/:provider_key/v1/*endpoint` in Gin's tree, and NoRoute would miss paths that happen to match an existing pattern.
-- The relay **never** consults `providers`, `models`, adapters, `stream_options` injection, or `usage_logs`. Client `Authorization` / `x-api-key` headers are forwarded untouched, so callers bring their own upstream key.
-- Front ends (Caddy included) may collapse the duplicate slash, arriving as `/https:/host/...`. `ParseTarget` re-adds it, and `frontend/Caddyfile` matches `^/https?:/` so both forms reach the backend. Keep that tolerance if you touch the matcher.
-- The SSRF guard resolves the host inside `Transport.DialContext` and rejects loopback/private/link-local (169.254.169.254)/multicast/CGNAT addresses at dial time, which also closes the DNS-rebinding window. `PASSTHROUGH_ALLOW_PRIVATE=true` disables it for local Ollama/LM Studio benchmarking.
-- Timing is collected with `httptrace` plus a first-byte marker in the stream copy; `passthrough_logs` writes happen on a dedicated goroutine (`service.PassthroughService`) with a non-blocking queue so SQLite never lands in the measured latency.
-- Query APIs are admin-gated: `GET /admin/passthrough/performance`, `GET /admin/passthrough/logs`.
-- Aggregates that describe *successful* traffic (`avg_total_ms`, `p50/p95/p99_total_ms`, per-host and per-bucket averages) are nullable — a window or host containing only errors reports `null`, never `0ms`. Keep that if you touch the queries; `PassthroughView.vue` renders null as `-`.
-- The dashboard page is `/passthrough` (`PassthroughView.vue`, `stores/passthrough.ts`), route + nav entry both `requiresAdmin`/`adminOnly` because the records are global, not per-user.
+- 새 UI 문자열은 `src/locales/{en,ja,ko}.ts` 세 곳에 동시에 추가한다 (i18n 누락이 기본 상태).
+- Pinia 스토어: 소문자 파일명 + `useXStore` export (예: `stores/providers.ts` → `useProvidersStore`), 뷰는 `PascalCaseView.vue`.
 
-## Coding Style
+## 제약
 
-- Go: `gofmt` tabs, short lowercase package names matching folder names
-- Frontend: two-space indentation in `.vue` and `.ts`; views as `PascalCaseView.vue`; stores as lowercase files (e.g., `providers.ts`) exported as `useXStore`
-
-## Streaming Token & Cache Extraction
-
-This is the most error-prone area of the codebase. When modifying proxy code, pay attention to:
-
-### OpenAI does NOT include usage in streaming by default
-
-OpenAI API omits `usage` from streaming chunks unless `stream_options: { "include_usage": true }` is in the request body. The proxy must inject this option for all OpenAI-compatible providers (openai, lmstudio, ollama) when `stream: true`. This is handled in:
-
-- `executeChat()` (proxy.go) — for `/v1/chat/completions`
-- `executeMessages()` (proxy.go) — for `/v1/messages`
-- `handlePathRoutedProxy()` (proxy.go) — for path-routed requests like `/openai/v1/chat/completions`
-
-The helper `isOpenAICompat(providerType string) bool` (proxy.go) gates this injection. Anthropic and Gemini include usage data natively and do NOT need this option.
-
-### Cache token field names differ per provider
-
-| Provider  | Cache Write (input cache creation)  | Cache Read (cache hits)                     |
-| --------- | ----------------------------------- | ------------------------------------------- |
-| Anthropic | `usage.cache_creation_input_tokens` | `usage.cache_read_input_tokens`             |
-| OpenAI    | — (not applicable)                  | `usage.prompt_tokens_details.cached_tokens` |
-| Gemini    | — (not applicable)                  | `usageMetadata.cached_content_token_count`  |
-
-For **non-streaming**: `extractCacheTokens()` in proxy.go handles the field-name dispatch.
-
-For **streaming**: each adapter's `ParseStreamChunk` / `ParseMessagesStreamChunk` stores cache tokens in `state["cache_write_5m_tokens"]` and `state["cache_read_tokens"]`, which the stream handlers read after the stream ends.
-
-### Streaming has three paths
-
-- `handleStreamResponse` — OpenAI-style SSE (`/chat/completions`), uses `ParseStreamChunk`
-- `handleMessagesStreamResponse` — Anthropic-style SSE (`/messages`), uses `ParseMessagesStreamChunk`
-- `handleRawStreamResponse` — catch-all passthrough for unknown providers, only logs latency (no token extraction)
-
-Path-routed proxy (`handlePathRoutedProxy`) must use `handleStreamResponse` (not `handleRawStreamResponse`) when a known adapter exists for the provider type.
-
-### `extractUsageFromRawResponse` must extract cache tokens for ALL providers
-
-This function in `http_helpers.go` has provider-specific branches. Every branch that reads usage must also extract cache tokens — the Anthropic and Gemini cases historically only read basic token counts and silently dropped cache write/read tokens.
-
-Anthropic needs: `extractCacheTokens(usage)` (reads `cache_creation_input_tokens` + `cache_read_input_tokens`)
-Gemini needs: `numberToInt64(usage["cached_content_token_count"])`
-Default (OpenAI/etc): `extractCacheTokens(usage)` (reads all cache field formats with fallbacks)
-
-### Path-routed proxy (`handlePathRoutedProxy`)
-
-This handler processes requests like `/openai/v1/chat/completions` where the provider is in the URL path rather than the model ID. Also handles requests where `dbModel == nil` (model not found in DB). Key gotchas:
-
-- Token extraction and logging happens in the final `else` block (not gated by `dbModel != nil`; cost is only calculated when `dbModel != nil`)
-- Must inject `stream_options: { "include_usage": true }` before marshaling when streaming + OpenAI-compatible
-- Must dispatch to `handleStreamResponse` or `handleMessagesStreamResponse` when a known adapter exists, only falling back to `handleRawStreamResponse` for truly unknown formats
-- Non-streaming response parsing uses `extractUsageFromRawResponse()` — ensure cache tokens are extracted for all provider types
-
-## Testing
-
-Go test files:
-
-- `internal/proxy/openai_adapter_test.go` — ParseStreamChunk, ParseMessagesStreamChunk, header forwarding
-- `internal/proxy/anthropic_adapter_test.go` — Anthropic adapter tests
-- `internal/proxy/gemini_adapter_test.go` — Gemini adapter tests
-- `internal/proxy/proxy_helpers_test.go` — `applyGeminiStreamingURL`, `buildUpstreamRequest`, `stripProviderPrefix`, `setGenConfig`
-- `internal/proxy/http_helpers_test.go` — `extractUsageFromRawResponse`
-- `internal/proxy/adapter_response_test.go` — response parsing tests
-- `internal/proxy/adapter_request_test.go` — request building tests
-- `internal/service/auth_service_test.go` — registration uniqueness
-- `internal/service/apikey_service_test.go` — API-key rate limiting
-- `internal/crypto/aes_test.go` — encryption
-
-Place new tests beside implementations as `*_test.go` and run `go test ./...` from `backend/`. The frontend has no test runner; `bun run build` runs `vue-tsc --noEmit` for type checking.
-
-The Python scripts under `test/` (`main.py`, `test2.py`, `test3.py`) are runnable integration probes against a live proxy, not pytest cases. They contain hardcoded `om-ni-...` keys that target a specific dev environment.
-
-## Security
-
-Never commit provider API keys or production secrets. Override `JWT_SECRET` and `ENCRYPT_KEY` via environment variables (dev defaults exist but are unsafe for production). `ENCRYPT_KEY` must be a 64-char hex string (32 bytes). Keep SQLite databases out of commits unless intentionally adding a fixture.
-
-## Important
-
-DO NOT USE `rg` command in any shell, terminal.
+- 셸에서 `rg` 사용 금지.
+- 사용자가 명시적으로 요청하지 않는 한 커밋 금지.
+- 큰 변경 전 `docs/superpowers/specs/`·`docs/superpowers/plans/`에 기존 설계/계획이 있는지 확인하고, 해당 plan 파일의 Global Constraints를 지킬 것.
+- 테스트는 구현 옆에 `*_test.go`로. httptest·임시 SQLite를 쓰므로 외부 서비스가 필요 없다.
