@@ -37,6 +37,7 @@ func main() {
 	authService.SetJWTSecret(cfg.JWTSecret)
 	providerService := service.NewProviderService(db, cfg)
 	modelService := service.NewModelService(db)
+	modelService.SetPricingCatalog(service.NewModelsDevCatalog())
 	apiKeyService := service.NewAPIKeyService(db)
 	usageService := service.NewUsageService(db)
 	usageService.SetAPIKeyService(apiKeyService)

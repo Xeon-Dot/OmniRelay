@@ -7,11 +7,26 @@ import (
 )
 
 type ModelService struct {
-	db *sql.DB
+	db      *sql.DB
+	pricing *ModelsDevCatalog
 }
 
 func NewModelService(db *sql.DB) *ModelService {
 	return &ModelService{db: db}
+}
+
+// SetPricingCatalog enables automatic models.dev price filling for added models.
+func (s *ModelService) SetPricingCatalog(c *ModelsDevCatalog) {
+	s.pricing = c
+}
+
+// fillZeroPrice fills only a still-zero price from the catalog; user-entered
+// and previously stored values are never overwritten.
+func fillZeroPrice(current float64, published *float64) float64 {
+	if current == 0 && published != nil {
+		return *published
+	}
+	return current
 }
 
 func (s *ModelService) List(providerKey string, userID int64) ([]models.Model, error) {
@@ -46,6 +61,13 @@ func (s *ModelService) List(providerKey string, userID int64) ([]models.Model, e
 }
 
 func (s *ModelService) SyncFromProvider(providerID int64, providerKey string, modelIDs []string, userID int64) error {
+	var providerType string
+	if s.pricing != nil {
+		if err := s.db.QueryRow("SELECT provider_type FROM providers WHERE id = ?", providerID).Scan(&providerType); err != nil {
+			return err
+		}
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -84,7 +106,17 @@ func (s *ModelService) SyncFromProvider(providerID int64, providerKey string, mo
 	}
 
 	for _, modelID := range modelIDs {
-		sp := existingPrices[modelID]
+		sp, existed := existingPrices[modelID]
+		// New models start at zero: fill their published prices. Models that
+		// already existed keep whatever price they had (design: never overwrite).
+		if !existed && s.pricing != nil {
+			if p := s.pricing.Lookup(providerKey, providerType, modelID); p != nil {
+				sp.InputPrice = fillZeroPrice(sp.InputPrice, p.Input)
+				sp.OutputPrice = fillZeroPrice(sp.OutputPrice, p.Output)
+				sp.CacheWrite5mPrice = fillZeroPrice(sp.CacheWrite5mPrice, p.CacheWrite5m)
+				sp.CacheReadPrice = fillZeroPrice(sp.CacheReadPrice, p.CacheRead)
+			}
+		}
 		_, err := tx.Exec(
 			"INSERT OR IGNORE INTO models (provider_id, model_id, display_name, provider_key, is_manual, input_price_per_1mtok, output_price_per_1mtok, cache_write_5m_price_per_1mtok, cache_write_1h_price_per_1mtok, cache_read_price_per_1mtok, user_id) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)",
 			providerID, modelID, modelID, providerKey, sp.InputPrice, sp.OutputPrice, sp.CacheWrite5mPrice, sp.CacheWrite1hPrice, sp.CacheReadPrice, userID,
@@ -98,8 +130,8 @@ func (s *ModelService) SyncFromProvider(providerID int64, providerKey string, mo
 }
 
 func (s *ModelService) Create(req models.CreateModelRequest, userID int64) (*models.Model, error) {
-	var providerKey string
-	err := s.db.QueryRow("SELECT provider_key FROM providers WHERE id = ? AND (user_id = ? OR user_id IS NULL)", req.ProviderID, userID).Scan(&providerKey)
+	var providerKey, providerType string
+	err := s.db.QueryRow("SELECT provider_key, provider_type FROM providers WHERE id = ? AND (user_id = ? OR user_id IS NULL)", req.ProviderID, userID).Scan(&providerKey, &providerType)
 	if err != nil {
 		return nil, errors.New("provider not found")
 	}
@@ -108,6 +140,8 @@ func (s *ModelService) Create(req models.CreateModelRequest, userID int64) (*mod
 	if displayName == "" {
 		displayName = req.ModelID
 	}
+
+	s.fillFromCatalog(&req, providerKey, providerType)
 
 	result, err := s.db.Exec(
 		"INSERT INTO models (provider_id, model_id, display_name, provider_key, is_manual, source_provider_key, input_price_per_1mtok, output_price_per_1mtok, cache_write_5m_price_per_1mtok, cache_write_1h_price_per_1mtok, cache_read_price_per_1mtok, context_window, user_id) VALUES (?, ?, ?, ?, 1, '', ?, ?, ?, ?, ?, ?, ?)",
