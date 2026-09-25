@@ -139,6 +139,21 @@ func (e *Engine) HandlePathRouted(c *gin.Context) {
 		}
 	}
 
+	if c.Request.Method == http.MethodGet && apiPrefix == "v1" && endpoint == "/models" {
+		modelList, err := e.modelService.List(providerKey, userID)
+		if err != nil {
+			apiresponse.AbortInternal(c, apiresponse.FormatOpenAI, "failed to list models")
+			return
+		}
+
+		data := make([]models.PublicModel, 0, len(modelList))
+		for _, m := range modelList {
+			data = append(data, m.ToPublicModel())
+		}
+		c.JSON(http.StatusOK, gin.H{"object": "list", "data": data})
+		return
+	}
+
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		apiresponse.AbortInvalidRequest(c, errFmt, "failed to read request body", "")

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -176,5 +177,50 @@ func TestPathRoutedSourceProviderACLAllowsAccess(t *testing.T) {
 	}
 	if !upstreamHit {
 		t.Fatalf("upstream was never contacted for an allowed provider")
+	}
+}
+
+func TestPathRoutedModelsReturnsOpenAICompatibleList(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	upstreamHit := false
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamHit = true
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"models":[{"name":"gemini-2.0-flash"}]}`))
+	}))
+	t.Cleanup(upstream.Close)
+
+	providerSvc, modelSvc, usageSvc, authSvc := seedACLDB(t, upstream.URL)
+	engine := NewEngine(providerSvc, modelSvc, usageSvc, authSvc, nil)
+
+	r := gin.New()
+	r.GET("/:provider_key/v1/*endpoint", func(c *gin.Context) {
+		c.Set("api_key_id", int64(1))
+		c.Set("user_id", int64(2))
+		engine.HandlePathRouted(c)
+	})
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/my-custom/v1/models", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s, want 200", w.Code, w.Body.String())
+	}
+	var response struct {
+		Object string `json:"object"`
+		Data   []struct {
+			ID     string `json:"id"`
+			Object string `json:"object"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.Object != "list" || len(response.Data) != 1 || response.Data[0].ID != "my-custom/gpt-4o" || response.Data[0].Object != "model" {
+		t.Fatalf("unexpected model list response: %+v", response)
+	}
+	if upstreamHit {
+		t.Fatalf("model list request should use the gateway model catalog, not the upstream response")
 	}
 }
