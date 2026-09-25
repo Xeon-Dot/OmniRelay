@@ -148,7 +148,9 @@ func (e *Engine) HandlePathRouted(c *gin.Context) {
 
 		data := make([]models.PublicModel, 0, len(modelList))
 		for _, m := range modelList {
-			data = append(data, m.ToPublicModel())
+			publicModel := m.ToPublicModel()
+			publicModel.ID = m.ModelID
+			data = append(data, publicModel)
 		}
 		c.JSON(http.StatusOK, gin.H{"object": "list", "data": data})
 		return

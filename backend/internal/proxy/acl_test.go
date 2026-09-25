@@ -217,7 +217,7 @@ func TestPathRoutedModelsReturnsOpenAICompatibleList(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if response.Object != "list" || len(response.Data) != 1 || response.Data[0].ID != "my-custom/gpt-4o" || response.Data[0].Object != "model" {
+	if response.Object != "list" || len(response.Data) != 1 || response.Data[0].ID != "gpt-4o" || response.Data[0].Object != "model" {
 		t.Fatalf("unexpected model list response: %+v", response)
 	}
 	if upstreamHit {
