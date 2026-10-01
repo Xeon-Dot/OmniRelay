@@ -1,10 +1,12 @@
 <template>
   <div class="page">
     <PageHeader :title="$t('usage.title')" :subtitle="$t('usage.subtitle')">
-      <button class="btn-tonal" @click="store.fetchStats()">
-        <v-icon size="15">mdi-refresh</v-icon>
+      <OrButton variant="tonal" @click="store.fetchStats()">
+        <template #leading>
+          <OrIcon name="refresh" :size="15" />
+        </template>
         {{ $t("common.refresh") }}
-      </button>
+      </OrButton>
     </PageHeader>
 
     <!-- Stats Cards -->
@@ -33,15 +35,15 @@
     </div>
 
     <!-- 30-day Chart -->
-    <div class="table-card chart-section">
+    <OrCard>
       <h2 class="chart-heading">{{ $t("dashboard.usage30Days") }}</h2>
       <div class="chart-area">
         <template v-if="stats?.daily_usage?.length">
           <Line :data="chartData" :options="chartOptions" />
         </template>
-        <EmptyState v-else icon="mdi-chart-bar" :text="$t('dashboard.noUsageData')" />
+        <EmptyState v-else icon="bar_chart" :text="$t('dashboard.noUsageData')" />
       </div>
-    </div>
+    </OrCard>
   </div>
 </template>
 
@@ -60,6 +62,7 @@ import {
   Legend,
 } from "chart.js";
 import { useUsageStore } from "../stores/usage";
+import { useChartTheme } from "../composables/useChartTheme";
 import PageHeader from "../components/PageHeader.vue";
 import StatCard from "../components/StatCard.vue";
 import EmptyState from "../components/EmptyState.vue";
@@ -77,6 +80,7 @@ ChartJS.register(
 const { t } = useI18n();
 const store = useUsageStore();
 const stats = computed(() => store.stats);
+const { palette } = useChartTheme();
 
 const chartData = computed(() => ({
   labels: stats.value?.daily_usage.map((d) => d.date.slice(5)) ?? [],
@@ -84,8 +88,8 @@ const chartData = computed(() => ({
     {
       label: t("dashboard.tokens"),
       data: stats.value?.daily_usage.map((d) => d.total_tokens) ?? [],
-      backgroundColor: "rgba(232, 160, 32, 0.1)",
-      borderColor: "#e8a020",
+      backgroundColor: `${palette.value.primary}1a`,
+      borderColor: palette.value.primary,
       borderWidth: 2,
       fill: true,
       tension: 0.3,
@@ -96,8 +100,8 @@ const chartData = computed(() => ({
     {
       label: t("dashboard.cost"),
       data: stats.value?.daily_usage.map((d) => d.total_cost) ?? [],
-      backgroundColor: "rgba(46, 196, 182, 0.1)",
-      borderColor: "#2ec4b6",
+      backgroundColor: `${palette.value.tertiary}1a`,
+      borderColor: palette.value.tertiary,
       borderWidth: 2,
       fill: true,
       tension: 0.3,
@@ -115,41 +119,49 @@ const chartOptions = computed(() => ({
   plugins: {
     legend: {
       labels: {
-        color: "#7c7a75",
-        font: { family: '"DM Sans", sans-serif', size: 12 },
+        color: palette.value.text,
+        font: { size: 12 },
         usePointStyle: true,
         pointStyleWidth: 8,
       },
     },
     tooltip: {
-      backgroundColor: "#131316",
-      titleColor: "#e8e6e1",
-      bodyColor: "#e8e6e1",
-      borderColor: "rgba(232,160,32,0.2)",
+      backgroundColor: palette.value.surface,
+      titleColor: palette.value.onSurface,
+      bodyColor: palette.value.onSurface,
+      borderColor: palette.value.grid,
       borderWidth: 1,
       padding: 12,
     },
   },
   scales: {
     x: {
-      ticks: { color: "#4a4844", font: { size: 10 } },
-      grid: { color: "rgba(255,255,255,0.04)" },
+      ticks: { color: palette.value.text, font: { size: 10 } },
+      grid: { color: palette.value.grid },
     },
     y: {
       type: "linear" as const,
       display: true,
       position: "left" as const,
-      title: { display: true, text: t("dashboard.tokens"), color: "#e8a020" },
-      ticks: { color: "#e8a020", font: { size: 10 } },
-      grid: { color: "rgba(255,255,255,0.04)" },
+      title: {
+        display: true,
+        text: t("dashboard.tokens"),
+        color: palette.value.primary,
+      },
+      ticks: { color: palette.value.primary, font: { size: 10 } },
+      grid: { color: palette.value.grid },
     },
     y1: {
       type: "linear" as const,
       display: true,
       position: "right" as const,
-      title: { display: true, text: t("dashboard.costAxis"), color: "#2ec4b6" },
-      ticks: { color: "#2ec4b6", font: { size: 10 } },
-      grid: { drawOnChartArea: false },
+      title: {
+        display: true,
+        text: t("dashboard.costAxis"),
+        color: palette.value.tertiary,
+      },
+      ticks: { color: palette.value.tertiary, font: { size: 10 } },
+      grid: { color: palette.value.grid, drawOnChartArea: false },
     },
   },
 }));
@@ -169,51 +181,43 @@ onUnmounted(() => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  /* 220px keeps a 9-digit token count on one line at the title-large size;
+     160px squeezed six cards per row and split the numbers. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--m3-space-150);
 }
 
 .stat-value--accent {
-  color: #e8a020;
+  color: var(--m3-color-primary);
 }
 
 .stat-value--cost {
-  color: #2ec4b6;
+  color: var(--m3-color-tertiary);
 }
 
 .stat-value--cache-read {
-  color: #2ec4b6;
-}
-
-.chart-section {
-  padding: 20px;
+  color: var(--m3-color-tertiary);
 }
 
 .chart-heading {
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 1.05rem;
-  font-weight: 600;
-  font-style: italic;
-  color: #e8e6e1;
-  letter-spacing: -0.015em;
-  margin: 0 0 16px;
+  margin: 0 0 var(--m3-space-200);
+  color: var(--m3-color-on-surface);
+  font: var(--m3-typescale-title-medium);
+  letter-spacing: var(--m3-typescale-title-medium-tracking);
 }
 
 .chart-area {
-  width: 100%;
-  height: 320px;
+  inline-size: 100%;
+  block-size: 320px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: var(--m3-space-100);
   }
   .chart-area {
-    height: 240px;
-  }
-  .chart-section {
-    padding: 14px;
+    block-size: 240px;
   }
 }
 @media (max-width: 480px) {
@@ -221,7 +225,7 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
   .chart-area {
-    height: 200px;
+    block-size: 200px;
   }
 }
 </style>

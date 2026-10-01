@@ -1,170 +1,202 @@
 <template>
-  <!-- Desktop / Tablet sidebar -->
-  <v-navigation-drawer
-    v-if="!isMobile"
-    v-model="drawer"
-    :rail="rail"
-    permanent
-    width="220"
+  <!-- Desktop / tablet: navigation rail, expanding to a drawer above 1200px -->
+  <OrNavRail
+    v-if="!isCompact"
+    class="layout-rail"
+    :items="visibleItems"
+    :expanded="drawerExpanded"
+    :brand-sub="auth.user?.username || $t('nav.gateway')"
+    @toggle="drawerExpanded = !drawerExpanded"
   >
-    <!-- Brand -->
-    <div class="brand-area" :class="{ 'brand-area--rail': rail }">
-      <div class="brand-logo">
-        <img :src="logoUrl" alt="OmniRelay" />
+    <template #brand>
+      <img class="brand-logo" :src="logoUrl" alt="OmniRelay" />
+      <div v-if="drawerExpanded" class="brand-text">
+        <div class="brand-name">OmniRelay</div>
+        <div class="brand-sub">{{ auth.user?.username || $t("nav.gateway") }}</div>
       </div>
-      <transition name="fade">
-        <div v-if="!rail" class="brand-text">
-          <div class="brand-name">OmniRelay</div>
-          <div class="brand-sub">
-            {{ auth.user?.username || $t("nav.gateway") }}
-          </div>
-        </div>
-      </transition>
-      <v-btn
-        class="rail-toggle"
-        :icon="rail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
-        variant="text"
-        size="small"
-        @click.stop="rail = !rail"
+    </template>
+
+    <template #footer>
+      <!-- Theme: a three-way choice reads better as labels when there is room -->
+      <OrSegmentedButton
+        v-if="drawerExpanded"
+        size="sm"
+        block
+        :options="themeOptions"
+        :model-value="theme.mode"
+        @update:model-value="onThemeMode"
       />
+      <OrIconButton
+        v-else
+        :icon="theme.resolved === 'dark' ? 'dark_mode' : 'light_mode'"
+        :label="$t('common.theme')"
+        size="sm"
+        @click="theme.toggle()"
+      />
+
+      <!-- Language -->
+      <OrSegmentedButton
+        v-if="drawerExpanded"
+        size="sm"
+        block
+        :options="localeOptions"
+        :model-value="locale"
+        @update:model-value="onLocaleMode"
+      />
+      <div v-else class="locale-mini">
+        <button
+          v-for="option in localeOptions"
+          :key="option.value"
+          class="locale-mini__btn"
+          :class="{ 'is-active': locale === option.value }"
+          type="button"
+          @click="switchLocale(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
+      <button class="logout-btn" type="button" @click="handleLogout">
+        <OrIcon name="logout" :size="20" />
+        <span v-if="drawerExpanded" class="logout-btn__label">{{ $t("common.signOut") }}</span>
+      </button>
+    </template>
+  </OrNavRail>
+
+  <!-- Mobile: bottom navigation bar; destinations past the fifth live behind
+       "More", which opens the sheet below (M3 caps a nav bar at 5). -->
+  <OrNavigationBar
+    v-else
+    :items="visibleItems"
+    :more-label="$t('nav.more')"
+    @more="navSheet = true"
+  />
+
+  <main class="layout-main" :class="{ 'layout-main--compact': isCompact }">
+    <div class="layout-container">
+      <router-view />
     </div>
+  </main>
 
-    <div class="nav-divider" />
-
-    <!-- Nav items -->
-    <nav class="nav-list">
+  <!-- Mobile overflow menu: every destination in a bottom sheet -->
+  <OrDialog
+    v-model="navSheet"
+    sheet
+    :title="$t('nav.mainNavigation')"
+  >
+    <nav class="nav-sheet">
       <router-link
         v-for="item in visibleItems"
         :key="item.to"
         :to="item.to"
-        class="nav-item"
-        :class="{ 'nav-item--active': isActive(item.to) }"
-        :title="rail ? $t(item.i18nKey) : undefined"
+        class="nav-sheet__item"
+        :class="{ 'is-active': isActive(item.to) }"
+        :aria-current="isActive(item.to) ? 'page' : undefined"
+        @click="navSheet = false"
       >
-        <v-icon size="18" class="nav-item__icon">{{ item.icon }}</v-icon>
-        <transition name="fade">
-          <span v-if="!rail" class="nav-item__label">{{
-            $t(item.i18nKey)
-          }}</span>
-        </transition>
-        <transition name="fade">
-          <span v-if="!rail && isActive(item.to)" class="nav-item__dot" />
-        </transition>
+        <OrIcon :name="item.icon" :size="22" />
+        <span>{{ item.label }}</span>
       </router-link>
     </nav>
-
-    <!-- Footer -->
-    <template #append>
-      <div class="nav-footer" :class="{ 'nav-footer--rail': rail }">
-        <div class="nav-divider" />
-        <div class="locale-switch" :class="{ 'locale-switch--rail': rail }">
-          <button
-            class="locale-btn"
-            :class="{ 'locale-btn--active': locale === 'en' }"
-            @click="switchLocale('en')"
-          >
-            EN
-          </button>
-          <button
-            class="locale-btn"
-            :class="{ 'locale-btn--active': locale === 'ja' }"
-            @click="switchLocale('ja')"
-          >
-            JA
-          </button>
-          <button
-            class="locale-btn"
-            :class="{ 'locale-btn--active': locale === 'ko' }"
-            @click="switchLocale('ko')"
-          >
-            KO
-          </button>
-        </div>
-        <div class="nav-divider" />
-        <button
-          class="logout-btn"
-          :class="{ 'logout-btn--rail': rail }"
-          @click="handleLogout"
-        >
-          <v-icon size="16">mdi-logout</v-icon>
-          <transition name="fade">
-            <span v-if="!rail">{{ $t("common.signOut") }}</span>
-          </transition>
-        </button>
-      </div>
-    </template>
-  </v-navigation-drawer>
-
-  <!-- Mobile bottom tab bar -->
-  <nav v-else class="mobile-tab-bar">
-    <router-link
-      v-for="item in visibleItems"
-      :key="item.to"
-      :to="item.to"
-      class="mobile-tab"
-      :class="{ 'mobile-tab--active': isActive(item.to) }"
-      :aria-current="isActive(item.to) ? 'page' : undefined"
-    >
-      <v-icon size="20">{{ item.icon }}</v-icon>
-      <span class="mobile-tab__label">{{ $t(item.i18nKey) }}</span>
-    </router-link>
-    <button
-      class="mobile-tab mobile-tab--logout"
-      @click="handleLogout"
-      :aria-label="$t('common.signOut')"
-    >
-      <v-icon size="20">mdi-logout</v-icon>
-      <span class="mobile-tab__label">{{ $t("common.signOut") }}</span>
-    </button>
-  </nav>
-
-  <v-main :class="{ 'main--mobile': isMobile }">
-    <v-container fluid class="pa-8">
-      <router-view />
-    </v-container>
-  </v-main>
+  </OrDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "../stores/auth";
+import { useThemeStore, type ThemeMode } from "../stores/theme";
 import { setLocale } from "../plugins/i18n";
-import { useMobile } from "../composables/useMobile";
 import logoUrl from "../assets/omnirelay-logo.svg";
 
 const auth = useAuthStore();
+const theme = useThemeStore();
 const router = useRouter();
 const route = useRoute();
-const { locale } = useI18n();
-const drawer = ref(true);
-const rail = ref(false);
-const { isMobile } = useMobile();
+const { locale, t } = useI18n();
 
-const menuItems = [
-  { i18nKey: "nav.dashboard", icon: "mdi-view-dashboard-outline", to: "/" },
-  { i18nKey: "nav.providers", icon: "mdi-server-outline", to: "/providers" },
-  { i18nKey: "nav.models", icon: "mdi-cube-outline", to: "/models" },
-  { i18nKey: "nav.apiKeys", icon: "mdi-key-outline", to: "/api-keys" },
-  { i18nKey: "nav.usage", icon: "mdi-chart-line", to: "/usage" },
-  { i18nKey: "nav.logs", icon: "mdi-text-box-search-outline", to: "/logs" },
-  { i18nKey: "nav.performance", icon: "mdi-chart-timeline-variant", to: "/performance" },
-  { i18nKey: "nav.users", icon: "mdi-account-group-outline", to: "/users", adminOnly: true },
-];
-
-const visibleItems = computed(() =>
-  menuItems.filter((item) => !item.adminOnly || auth.user?.is_admin)
-);
+/** Open state of the mobile "More" navigation sheet. */
+const navSheet = ref(false);
 
 function isActive(to: string) {
-  if (to === "/") return route.path === "/";
-  return route.path.startsWith(to);
+  return to === "/" ? route.path === "/" : route.path.startsWith(to);
 }
 
-function switchLocale(loc: string) {
-  setLocale(loc);
+const menuItems = [
+  { i18nKey: "nav.dashboard", icon: "space_dashboard", to: "/" },
+  { i18nKey: "nav.providers", icon: "dns", to: "/providers" },
+  { i18nKey: "nav.models", icon: "deployed_code", to: "/models" },
+  { i18nKey: "nav.apiKeys", icon: "key", to: "/api-keys" },
+  { i18nKey: "nav.usage", icon: "monitoring", to: "/usage" },
+  { i18nKey: "nav.logs", icon: "receipt_long", to: "/logs" },
+  { i18nKey: "nav.performance", icon: "speed", to: "/performance" },
+  { i18nKey: "nav.users", icon: "group", to: "/users", adminOnly: true },
+] as const;
+
+const visibleItems = computed(() =>
+  menuItems
+    .filter((item) => !("adminOnly" in item) || auth.user?.is_admin)
+    .map((item) => ({ to: item.to, icon: item.icon, label: tOf(item.i18nKey) })),
+);
+
+/** i18n at call time, not at module load — the locale can change. */
+function tOf(key: string) {
+  return t(key);
 }
+
+// Labels only: the drawer is 256px, and an icon plus a 3-character CJK label
+// does not fit in a third of it (see the `block` segmented below).
+const themeOptions = computed(() => [
+  { value: "system", label: t("common.themeSystem") },
+  { value: "light", label: t("common.themeLight") },
+  { value: "dark", label: t("common.themeDark") },
+]);
+
+const localeOptions = [
+  { value: "en", label: "EN" },
+  { value: "ja", label: "JA" },
+  { value: "ko", label: "KO" },
+];
+
+function switchLocale(next: string) {
+  setLocale(next);
+}
+
+/** Segmented buttons emit `string | string[]`; both uses here are single-select. */
+function onThemeMode(value: string | string[]) {
+  if (typeof value === "string") theme.setMode(value as ThemeMode);
+}
+
+function onLocaleMode(value: string | string[]) {
+  if (typeof value === "string") switchLocale(value);
+}
+
+const drawerExpanded = ref(true);
+
+/**
+ * Three navigation shells (spec §5.1):
+ *   ≥1200px drawer, 600–1199px icon rail, <600px bottom bar.
+ */
+const DRAWER_BREAKPOINT = 1200;
+const viewportWidth = ref(typeof window === "undefined" ? 1440 : window.innerWidth);
+function onResize() {
+  const next = window.innerWidth;
+  const wasDrawer = viewportWidth.value >= DRAWER_BREAKPOINT;
+  viewportWidth.value = next;
+  // Only crossing the boundary re-evaluates the default; a manual toggle
+  // inside a band survives incidental resizes.
+  if (wasDrawer !== (next >= DRAWER_BREAKPOINT)) {
+    drawerExpanded.value = next >= DRAWER_BREAKPOINT;
+  }
+}
+const isCompact = computed(() => viewportWidth.value < 600);
+
+onMounted(() => {
+  window.addEventListener("resize", onResize, { passive: true });
+  drawerExpanded.value = viewportWidth.value >= DRAWER_BREAKPOINT;
+});
+onBeforeUnmount(() => window.removeEventListener("resize", onResize));
 
 function handleLogout() {
   auth.logout();
@@ -173,284 +205,134 @@ function handleLogout() {
 </script>
 
 <style scoped>
-/* ── Brand ── */
-.brand-area {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 14px 14px;
-  position: relative;
-}
-.brand-area--rail {
-  padding: 18px 10px 14px;
-  justify-content: center;
-}
-
 .brand-logo {
+  inline-size: 32px;
+  block-size: 32px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-}
-.brand-logo img {
-  display: block;
-  width: 32px;
-  height: 32px;
 }
 
 .brand-text {
-  flex: 1;
-  min-width: 0;
+  min-inline-size: 0;
   overflow: hidden;
 }
+
 .brand-name {
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 1rem;
-  font-weight: 600;
-  font-style: italic;
-  color: #e8e6e1;
+  color: var(--m3-color-on-surface);
+  font: var(--m3-typescale-emphasized-title-medium);
+  letter-spacing: var(--m3-typescale-emphasized-title-medium-tracking);
   white-space: nowrap;
-  letter-spacing: -0.02em;
 }
+
 .brand-sub {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.7rem;
-  color: #7c7a75;
-  white-space: nowrap;
-  letter-spacing: 0.04em;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-label-small);
+  letter-spacing: var(--m3-typescale-label-small-tracking);
   text-transform: uppercase;
-  margin-top: 1px;
-}
-
-.rail-toggle {
-  flex-shrink: 0;
-  color: #4a4844 !important;
-  margin-left: auto;
-}
-.rail-toggle:hover {
-  color: #e8a020 !important;
-}
-
-/* ── Divider ── */
-.nav-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0 14px;
-}
-
-/* ── Nav list ── */
-.nav-list {
-  padding: 12px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 7px;
-  text-decoration: none;
-  color: #7c7a75;
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.86rem;
-  font-weight: 400;
-  transition: all 0.15s ease;
-  position: relative;
-  cursor: pointer;
   white-space: nowrap;
-  overflow: hidden;
-}
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: #e8e6e1;
-}
-.nav-item--active {
-  background: rgba(232, 160, 32, 0.09) !important;
-  color: #e8a020 !important;
-  font-weight: 500;
-  border-inline-start: 2px solid #e8a020;
-  padding-inline-start: 8px;
-}
-.nav-item__icon {
-  flex-shrink: 0;
-  opacity: 0.75;
-  transition: opacity 0.15s;
-}
-.nav-item--active .nav-item__icon {
-  opacity: 1;
-  color: #e8a020 !important;
-}
-.nav-item__label {
-  flex: 1;
-}
-.nav-item__dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #e8a020;
-  flex-shrink: 0;
-  opacity: 0.6;
 }
 
-/* ── Footer ── */
-.nav-footer {
-  padding: 8px 8px 14px;
-}
-.nav-footer--rail {
-  padding: 8px 4px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
 .logout-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 10px;
-  border-radius: 7px;
-  background: transparent;
-  border: none;
+  gap: var(--m3-space-150);
+  min-block-size: 48px;
+  padding-inline: var(--m3-space-100);
+  border-radius: var(--m3-shape-full);
+  color: var(--m3-color-on-surface-variant);
   cursor: pointer;
-  color: #7c7a75;
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.86rem;
-  transition: all 0.15s ease;
-  margin-top: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.logout-btn:hover {
-  background: rgba(255, 87, 87, 0.08);
-  color: #ff5757;
-}
-.logout-btn--rail {
-  width: 36px;
-  padding: 9px;
-  justify-content: center;
-}
-
-.locale-switch {
-  display: flex;
-  gap: 2px;
-  padding: 8px 8px;
-}
-.locale-switch--rail {
-  flex-direction: column;
-  padding: 6px 4px;
-}
-.locale-btn {
-  flex: 1;
-  padding: 5px 0;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 5px;
-  cursor: pointer;
-  color: #4a4844;
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  transition: all 0.15s ease;
-}
-.locale-btn:hover {
-  border-color: rgba(232, 160, 32, 0.25);
-  color: #e8a020;
-}
-.locale-btn--active {
-  background: rgba(232, 160, 32, 0.1);
-  border-color: rgba(232, 160, 32, 0.3);
-  color: #e8a020;
-}
-.locale-switch--rail .locale-btn {
-  width: 32px;
-  padding: 4px 0;
-}
-
-/* ── Transitions ── */
-.fade-enter-active,
-.fade-leave-active {
   transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateX(-4px);
+    background-color var(--or-motion-effects-fast),
+    color var(--or-motion-effects-fast);
 }
 
-/* ── Main content ── */
-:deep(.v-navigation-drawer) {
-  background: #131316 !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+.logout-btn:hover {
+  background: var(--m3-color-error-container);
+  color: var(--m3-color-on-error-container);
 }
 
-/* ── Mobile bottom tab bar ── */
-.mobile-tab-bar {
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
-  height: 56px;
-  background: #131316;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
-  z-index: 1000;
+.logout-btn__label {
+  font: var(--m3-typescale-label-large);
+  letter-spacing: var(--m3-typescale-label-large-tracking);
 }
-.mobile-tab-bar::-webkit-scrollbar {
-  display: none;
-}
-.mobile-tab {
+
+.locale-mini {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
   gap: 2px;
-  flex: 1 0 auto;
-  min-width: 56px;
-  height: 100%;
-  text-decoration: none;
-  color: #4a4844;
-  transition: color 0.15s;
-  min-width: 0;
-}
-.mobile-tab--active {
-  color: #e8a020;
-}
-.mobile-tab__label {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.6rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-.mobile-tab--logout {
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 
-.main--mobile .v-container {
-  padding-bottom: calc(
-    56px + env(safe-area-inset-bottom, 0px) + 16px
-  ) !important;
-  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+.locale-mini__btn {
+  flex: 1;
+  min-block-size: 32px;
+  border: 1px solid var(--m3-color-outline-variant);
+  border-radius: var(--m3-shape-xs);
+  background: transparent;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-label-small);
+  letter-spacing: var(--m3-typescale-label-small-tracking);
+  cursor: pointer;
+  transition:
+    background-color var(--or-motion-effects-fast),
+    color var(--or-motion-effects-fast);
 }
-@media (max-width: 768px) {
-  .v-container {
-    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
-  }
+
+.locale-mini__btn.is-active {
+  background: var(--m3-color-primary);
+  border-color: var(--m3-color-primary);
+  color: var(--m3-color-on-primary);
 }
+
+/* ── Content ── */
+.layout-main {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 100dvh;
+}
+
+.layout-container {
+  max-inline-size: var(--or-layout-max-width);
+  margin-inline: auto;
+  padding: var(--or-layout-padding-block-start) var(--or-layout-padding-inline);
+}
+
+.layout-main--compact .layout-container {
+  padding-inline: var(--or-layout-padding-inline-compact);
+  padding-block-end: calc(
+    var(--or-nav-bar-height) + env(safe-area-inset-bottom, 0px) + var(--m3-space-400)
+  );
+}
+
+/* ── Mobile "More" navigation sheet ── */
+.nav-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m3-space-75, 6px);
+}
+
+.nav-sheet__item {
+  display: flex;
+  align-items: center;
+  gap: var(--m3-space-200);
+  min-block-size: 56px;
+  padding-inline: var(--m3-space-200);
+  border-radius: var(--m3-shape-full);
+  color: var(--m3-color-on-surface-variant);
+  text-decoration: none;
+  font: var(--m3-typescale-label-large);
+  letter-spacing: var(--m3-typescale-label-large-tracking);
+  transition:
+    background-color var(--or-motion-effects-fast),
+    color var(--or-motion-effects-fast);
+}
+
+.nav-sheet__item:hover {
+  background: color-mix(in srgb, var(--m3-color-on-surface) 8%, transparent);
+  color: var(--m3-color-on-surface);
+}
+
+.nav-sheet__item.is-active {
+  background: var(--m3-color-secondary-container);
+  color: var(--m3-color-on-secondary-container);
+}
+
 </style>

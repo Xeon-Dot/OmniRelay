@@ -1,6 +1,7 @@
 import { ref, onMounted, onUnmounted } from "vue";
 
-const MOBILE_BREAKPOINT = 768;
+// Must match DefaultLayout's compact shell boundary (spec §5.1: <600px = bottom bar).
+const MOBILE_BREAKPOINT = 600;
 
 export function useMobile() {
   const isMobile = ref(false);

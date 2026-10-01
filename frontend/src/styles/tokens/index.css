@@ -1,0 +1,12 @@
+/* tokens/index.css — the single entry point for the design system.
+   Imported once by main.ts, before base.css and any component styles.
+   Every hard-coded color / radius / duration outside this directory is drift. */
+
+@import "./palette.css";
+@import "./color.css";
+@import "./type.css";
+@import "./shape.css";
+@import "./motion.css";
+@import "./elevation.css";
+@import "./space.css";
+@import "./state.css";

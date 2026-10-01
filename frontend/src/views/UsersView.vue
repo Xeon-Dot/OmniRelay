@@ -3,19 +3,16 @@
     <PageHeader :title="$t('users.title')" :subtitle="$t('users.subtitle')" />
 
     <div class="table-card">
-      <v-data-table
+      <OrDataTable
         :headers="headers"
         :items="store.users"
         :loading="store.loading"
         density="comfortable"
-        hide-default-footer
-        :items-per-page="-1"
+        :label="$t('users.title')"
       >
         <template #item.username="{ item }">
           <span class="username-cell">
-            <v-icon size="16" class="user-icon"
-              >mdi-account-circle-outline</v-icon
-            >
+            <OrIcon name="account_circle" :size="16" class="user-icon" />
             {{ item.username }}
           </span>
         </template>
@@ -34,40 +31,37 @@
         </template>
         <template #item.actions="{ item }">
           <div class="row-actions">
-            <button
-              class="row-btn"
-              :title="$t('users.toggleRole')"
+            <OrIconButton
+              size="sm"
+              icon="admin_panel_settings"
+              :label="$t('users.toggleRole')"
               @click="handleToggleRole(item)"
-            >
-              <v-icon size="15">mdi-shield-crown-outline</v-icon>
-            </button>
-            <button
-              class="row-btn"
-              :title="$t('users.resetPassword')"
+            />
+            <OrIconButton
+              size="sm"
+              icon="restart_alt"
+              :label="$t('users.resetPassword')"
               @click="handleResetPassword(item)"
-            >
-              <v-icon size="15">mdi-key-reset</v-icon>
-            </button>
-            <button
-              class="row-btn"
-              :title="$t('users.providers')"
+            />
+            <OrIconButton
+              size="sm"
+              icon="hub"
+              :label="$t('users.providers')"
               @click="openProvidersDialog(item)"
-            >
-              <v-icon size="15">mdi-server-network</v-icon>
-            </button>
-            <button
-              class="row-btn row-btn--danger"
-              :title="$t('users.delete')"
+            />
+            <OrIconButton
+              size="sm"
+              icon="delete"
+              tone="danger"
+              :label="$t('users.delete')"
               @click="handleDelete(item)"
-            >
-              <v-icon size="15">mdi-delete-outline</v-icon>
-            </button>
+            />
           </div>
         </template>
         <template #no-data>
-          <EmptyState icon="mdi-account-group-outline" :text="$t('users.noUsers')" />
+          <EmptyState icon="group" :text="$t('users.noUsers')" />
         </template>
-      </v-data-table>
+      </OrDataTable>
     </div>
 
     <!-- Mobile cards -->
@@ -89,165 +83,130 @@
         ]"
       >
         <template #actions>
-          <button
-            class="row-btn"
-            :title="$t('users.toggleRole')"
+          <OrIconButton
+            size="sm"
+            icon="admin_panel_settings"
+            :label="$t('users.toggleRole')"
             @click="handleToggleRole(u)"
-          >
-            <v-icon size="15">mdi-shield-crown-outline</v-icon>
-          </button>
-          <button
-            class="row-btn"
-            :title="$t('users.resetPassword')"
+          />
+          <OrIconButton
+            size="sm"
+            icon="restart_alt"
+            :label="$t('users.resetPassword')"
             @click="handleResetPassword(u)"
-          >
-            <v-icon size="15">mdi-key-reset</v-icon>
-          </button>
-          <button
-            class="row-btn"
-            :title="$t('users.providers')"
+          />
+          <OrIconButton
+            size="sm"
+            icon="hub"
+            :label="$t('users.providers')"
             @click="openProvidersDialog(u)"
-          >
-            <v-icon size="15">mdi-server-network</v-icon>
-          </button>
-          <button
-            class="row-btn row-btn--danger"
-            :title="$t('users.delete')"
+          />
+          <OrIconButton
+            size="sm"
+            icon="delete"
+            tone="danger"
+            :label="$t('users.delete')"
             @click="handleDelete(u)"
-          >
-            <v-icon size="15">mdi-delete-outline</v-icon>
-          </button>
+          />
         </template>
       </MobileDataCard>
-      <EmptyState v-if="!store.users.length" icon="mdi-account-group-outline" :text="$t('users.noUsers')" />
+      <EmptyState
+        v-if="!store.users.length"
+        icon="group"
+        :text="$t('users.noUsers')"
+      />
     </div>
 
     <!-- Confirm delete dialog -->
-    <v-dialog v-model="deleteDialog" max-width="400">
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title">{{ $t("users.deleteTitle") }}</h2>
-          <button class="dialog-close" @click="deleteDialog = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
-        </div>
-        <div class="dialog-body">
-          <p class="confirm-text">
-            {{ $t("users.deleteConfirm", { name: targetUser?.username }) }}
-          </p>
-          <div v-if="dialogError" class="alert alert--error">
-            <v-icon size="14">mdi-alert-circle-outline</v-icon>
-            {{ dialogError }}
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-ghost" @click="deleteDialog = false">
-            {{ $t("common.cancel") }}
-          </button>
-          <button class="btn-danger" @click="confirmDelete" :disabled="busy">
-            <span v-if="!busy">{{ $t("common.delete") }}</span>
-            <span v-else class="btn-spinner" />
-          </button>
-        </div>
+    <OrDialog
+      v-model="deleteDialog"
+      :width="400"
+      :title="$t('users.deleteTitle')"
+    >
+      <div class="dialog-stack">
+        <p class="confirm-text">
+          {{ $t("users.deleteConfirm", { name: targetUser?.username }) }}
+        </p>
+        <AppAlert v-if="dialogError" variant="error">{{
+          dialogError
+        }}</AppAlert>
       </div>
-    </v-dialog>
+      <template #footer>
+        <OrButton variant="text" @click="deleteDialog = false">
+          {{ $t("common.cancel") }}
+        </OrButton>
+        <OrButton variant="filled" tone="danger" :loading="busy" @click="confirmDelete">
+          {{ $t("common.delete") }}
+        </OrButton>
+      </template>
+    </OrDialog>
 
     <!-- Reset password result dialog -->
-    <v-dialog v-model="resetDialog" max-width="420">
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title" style="color: #2ec4b6">
-            {{ $t("users.resetTitle") }}
-          </h2>
-          <button class="dialog-close" @click="resetDialog = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
+    <OrDialog v-model="resetDialog" :width="420" :title="$t('users.resetTitle')">
+      <div class="dialog-stack">
+        <p class="reveal-note">{{ $t("users.resetNote") }}</p>
+        <div class="key-reveal">
+          <code class="key-value">{{ resetCode }}</code>
+          <OrIconButton
+            :icon="copied ? 'check' : 'content_copy'"
+            :variant="copied ? 'tonal' : 'standard'"
+            :label="$t('common.copy')"
+            @click="copyCode"
+          />
         </div>
-        <div class="dialog-body">
-          <p class="reveal-note">{{ $t("users.resetNote") }}</p>
-          <div class="key-reveal">
-            <code class="key-value">{{ resetCode }}</code>
-            <button
-              class="copy-btn"
-              @click="copyCode"
-              :class="{ 'copy-btn--copied': copied }"
-            >
-              <v-icon size="15">{{
-                copied ? "mdi-check" : "mdi-content-copy"
-              }}</v-icon>
-            </button>
-          </div>
-          <div v-if="dialogError" class="alert alert--error">
-            <v-icon size="14">mdi-alert-circle-outline</v-icon>
-            {{ dialogError }}
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-primary" @click="resetDialog = false">
-            {{ $t("common.close") }}
-          </button>
-        </div>
+        <AppAlert v-if="dialogError" variant="error">{{
+          dialogError
+        }}</AppAlert>
       </div>
-    </v-dialog>
+      <template #footer>
+        <OrButton @click="resetDialog = false">
+          {{ $t("common.close") }}
+        </OrButton>
+      </template>
+    </OrDialog>
 
     <!-- Providers dialog -->
-    <v-dialog
+    <OrDialog
       v-model="providersDialog"
-      :max-width="isMobile ? undefined : 460"
+      :width="isMobile ? undefined : 460"
       :fullscreen="isMobile"
+      :title="$t('users.providersTitle')"
     >
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title">{{ $t("users.providersTitle") }}</h2>
-          <button class="dialog-close" @click="providersDialog = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
+      <div class="dialog-stack">
+        <p class="field-hint">{{ $t("users.providersHint") }}</p>
+        <div v-if="providersLoading" class="loading-center">
+          <OrSpinner :size="28" />
         </div>
-        <div class="dialog-body">
-          <p class="field-hint" style="margin-bottom: 12px">
-            {{ $t("users.providersHint") }}
-          </p>
-          <div v-if="providersLoading" class="loading-center">
-            <span class="btn-spinner" />
-          </div>
-          <div v-else class="provider-checklist">
-            <label
-              v-for="p in providersStore.providers"
-              :key="p.id"
-              class="provider-check-item"
-            >
-              <input
-                type="checkbox"
-                :value="p.id"
-                v-model="selectedProviderIds"
-              />
-              <span>{{ p.name }}</span>
-              <MonoTag>{{ p.provider_key }}</MonoTag>
-            </label>
-            <p v-if="!providersStore.providers.length" class="dim-text">
-              {{ $t("users.noProviders") }}
-            </p>
-          </div>
-          <div v-if="dialogError" class="alert alert--error">
-            <v-icon size="14">mdi-alert-circle-outline</v-icon>
-            {{ dialogError }}
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-ghost" @click="providersDialog = false">
-            {{ $t("common.cancel") }}
-          </button>
-          <button
-            class="btn-primary"
-            @click="saveProviders"
-            :disabled="busy"
+        <div v-else class="provider-checklist">
+          <div
+            v-for="p in providersStore.providers"
+            :key="p.id"
+            class="provider-check-item"
           >
-            <span v-if="!busy">{{ $t("common.save") }}</span>
-            <span v-else class="btn-spinner" />
-          </button>
+            <OrCheckbox
+              v-model="selectedProviderIds"
+              :value="p.id"
+              :label="p.name"
+            />
+            <MonoTag>{{ p.provider_key }}</MonoTag>
+          </div>
+          <p v-if="!providersStore.providers.length" class="dim-text">
+            {{ $t("users.noProviders") }}
+          </p>
         </div>
+        <AppAlert v-if="dialogError" variant="error">{{
+          dialogError
+        }}</AppAlert>
       </div>
-    </v-dialog>
+      <template #footer>
+        <OrButton variant="text" @click="providersDialog = false">
+          {{ $t("common.cancel") }}
+        </OrButton>
+        <OrButton :loading="busy" @click="saveProviders">
+          {{ $t("common.save") }}
+        </OrButton>
+      </template>
+    </OrDialog>
   </div>
 </template>
 
@@ -257,11 +216,13 @@ import { useI18n } from "vue-i18n";
 import { useUsersStore, type User } from "../stores/users";
 import { useProvidersStore } from "../stores/providers";
 import { useMobile } from "../composables/useMobile";
+import { useSnackbarStore } from "../stores/snackbar";
 import PageHeader from "../components/PageHeader.vue";
 import StatusChip from "../components/StatusChip.vue";
 import MonoTag from "../components/MonoTag.vue";
 import EmptyState from "../components/EmptyState.vue";
 import MobileDataCard from "../components/MobileDataCard.vue";
+import AppAlert from "../components/AppAlert.vue";
 
 const { t } = useI18n();
 const store = useUsersStore();
@@ -293,7 +254,7 @@ async function handleToggleRole(u: User) {
     await store.setRole(u.id, !u.is_admin);
   } catch (err: any) {
     dialogError.value = err?.response?.data?.error || err?.message;
-    alert(dialogError.value);
+    useSnackbarStore().error(dialogError.value);
   }
 }
 
@@ -324,7 +285,7 @@ async function handleResetPassword(u: User) {
     copied.value = false;
     resetDialog.value = true;
   } catch (err: any) {
-    alert(err?.response?.data?.error || err?.message);
+    useSnackbarStore().error(err?.response?.data?.error || err?.message);
   }
 }
 
@@ -373,67 +334,71 @@ onMounted(() => {
 <style scoped>
 @import "../styles/page-shared.css";
 
-.mobile-cards {
-  display: none;
-}
-@media (max-width: 768px) {
-  .v-data-table {
-    display: none;
-  }
-  .mobile-cards {
-    display: block;
-  }
-}
-
-.dim-text {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.825rem;
-  color: #7c7a75;
+.dialog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m3-space-150);
 }
 
 .username-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.875rem;
+  gap: var(--m3-space-100);
+  color: var(--m3-color-on-surface);
   font-weight: 500;
-  color: #e8e6e1;
 }
 .user-icon {
-  color: #7c7a75;
-  flex-shrink: 0;
+  color: var(--m3-color-on-surface-variant);
 }
 
 .provider-checklist {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--m3-space-100);
 }
 .provider-check-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.85rem;
-  color: #e8e6e1;
-  cursor: pointer;
-}
-.provider-check-item input[type="checkbox"] {
-  accent-color: #2ec4b6;
-  width: 16px;
-  height: 16px;
+  gap: var(--m3-space-150);
 }
 
 .confirm-text {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.875rem;
-  color: #b0ada6;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-body-medium);
+  letter-spacing: var(--m3-typescale-body-medium-tracking);
 }
 
 .loading-center {
   display: flex;
   justify-content: center;
-  padding: 20px 0;
+  padding: var(--m3-space-300) 0;
+}
+
+.reveal-note {
+  margin: 0;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-body-small);
+  letter-spacing: var(--m3-typescale-body-small-tracking);
+}
+.key-reveal {
+  display: flex;
+  align-items: center;
+  gap: var(--m3-space-100);
+  padding: var(--m3-space-150) var(--m3-space-200);
+  background: var(--m3-color-surface-container-high);
+  border: 1px solid
+    color-mix(in srgb, var(--m3-color-primary) 25%, transparent);
+  border-radius: var(--m3-shape-md);
+}
+.key-value {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--m3-color-primary);
+  font-family: var(--m3-typeface-mono);
+  font-size: var(--m3-typescale-body-small);
+  word-break: break-all;
 }
 </style>

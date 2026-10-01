@@ -1,0 +1,36 @@
+/* space.css — the 8dp M3 grid (md.sys.measurement.space*) plus app layout
+   dimensions. Positional padding should be logical (inline-start/end). */
+
+:root {
+  --m3-space-25: 2px;
+  --m3-space-50: 4px;
+  --m3-space-75: 6px;
+  --m3-space-100: 8px;
+  --m3-space-150: 12px;
+  --m3-space-200: 16px;
+  --m3-space-300: 24px;
+  --m3-space-400: 32px;
+  --m3-space-600: 48px;
+
+  /* Minimum touch target (M3 accessibility). Visual size may be smaller;
+     the hit area never is. */
+  --m3-min-touch-target: 48px;
+
+  /* ── App layout (spec §5.2) ── */
+  --or-layout-max-width: 1440px;
+  --or-layout-padding-inline: var(--m3-space-300);
+  --or-layout-padding-inline-compact: var(--m3-space-200);
+  --or-layout-padding-block-start: var(--m3-space-400);
+  --or-gap-page: var(--m3-space-400);
+  --or-gap-section: var(--m3-space-400);
+  --or-gap-card: var(--m3-space-200);
+  --or-gap-filter: var(--m3-space-150);
+  --or-pad-card: var(--m3-space-300);
+
+  /* ── App chrome dimensions (spec §5.1) ── */
+  --or-drawer-width: 256px;
+  --or-rail-width: 80px;
+  --or-nav-bar-height: 80px;
+  --or-chrome-breakpoint: 1100px;
+  --or-compact-breakpoint: 600px;
+}

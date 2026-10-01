@@ -1,12 +1,6 @@
 <template>
   <div class="auth-shell">
-    <!-- Background grid -->
-    <div class="auth-grid" aria-hidden="true" />
-    <!-- Glow -->
-    <div class="auth-glow" aria-hidden="true" />
-
     <div class="auth-card-wrap">
-      <!-- Brand mark -->
       <div class="auth-brand">
         <img class="auth-brand__logo" :src="logoUrl" alt="OmniRelay" />
         <span class="auth-brand__name">OmniRelay</span>
@@ -31,12 +25,12 @@
 <script setup lang="ts">
 import logoUrl from "../assets/omnirelay-logo.svg";
 
-defineProps<{
-  title: string;
-  subtitle: string;
-}>();
+defineProps<{ title: string; subtitle: string }>();
 </script>
 
 <style>
+/* The decorative grid/glow background is gone: M3 gets its emphasis from the
+   tonal surface and the card's elevation instead. Fields/buttons are the
+   shared `Or*` primitives, so this file only owns the shell. */
 @import "../styles/auth.css";
 </style>

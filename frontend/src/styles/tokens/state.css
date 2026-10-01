@@ -1,0 +1,14 @@
+/* state.css — M3 state-layer opacities. Applied as a ::after overlay in the
+   container's contrasting color, composited with color-mix(). */
+
+:root {
+  --m3-state-hover: 0.08;
+  --m3-state-focus: 0.1;
+  --m3-state-press: 0.1;
+  --m3-state-drag: 0.16;
+
+  /* Focus ring — 2px, offset 2px, never removed */
+  --m3-focus-ring-color: var(--m3-color-primary);
+  --m3-focus-ring-width: 2px;
+  --m3-focus-ring-offset: 2px;
+}

@@ -1,15 +1,20 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "./plugins/router";
-import vuetify from "./plugins/vuetify";
 import i18n from "./plugins/i18n";
+import components from "./plugins/components";
+import ripple from "./plugins/ripple";
 import App from "./App.vue";
-import "@mdi/font/css/materialdesignicons.css";
-import "./styles/tokens.css";
+import "@fontsource-variable/roboto";
+import "@material-symbols/font-400/rounded.css";
+import "./styles/tokens/index.css";
+import "./styles/base.css";
+import "./styles/ui.css";
 
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);
-app.use(vuetify);
+app.use(components);
+app.directive("ripple", ripple);
 app.use(i18n);
 app.mount("#app");

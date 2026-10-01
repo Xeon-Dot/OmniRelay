@@ -1,0 +1,123 @@
+/* base.css — reset and document defaults, on top of tokens/index.css.
+   No component rules here; components own their own styling. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* The inline script in index.html sets data-theme before first paint, so
+     these two blocks are the complete theme handling — no media-query copy. */
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+  padding: 0;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--m3-color-background);
+  color: var(--m3-color-on-background);
+  font: var(--m3-typescale-body-medium);
+  letter-spacing: var(--m3-typescale-body-medium-tracking);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+picture,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+a {
+  color: var(--m3-color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Never remove the focus indicator — M3 requires a visible ring. */
+:focus-visible {
+  outline: var(--m3-focus-ring-width) solid var(--m3-focus-ring-color);
+  outline-offset: var(--m3-focus-ring-offset);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--m3-color-primary) 30%, transparent);
+  color: var(--m3-color-on-surface);
+}
+
+/* Scrollbars follow the theme instead of defaulting to light. */
+* {
+  scrollbar-color: var(--m3-color-outline-variant) transparent;
+  scrollbar-width: thin;
+}
+
+/* Inline code — M3 tonal chip rather than an amber accent. */
+code,
+pre {
+  font-family: var(--m3-typeface-mono);
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--m3-color-on-surface) 8%, transparent);
+  border: 1px solid var(--m3-color-outline-variant);
+  border-radius: var(--m3-shape-xs);
+  padding: 0.1em 0.45em;
+  color: var(--m3-color-on-surface);
+}
+
+pre {
+  padding: var(--m3-space-200);
+  overflow-x: auto;
+}
+
+pre code {
+  border: none;
+  background: transparent;
+  padding: 0;
+}

@@ -1,0 +1,105 @@
+/* type.css — M3 type scale (official md.sys.typescale) + the M3 Expressive
+   emphasized set, and the typeface stacks.
+
+   Google Sans is not redistributable, so Roboto — the M3 spec's own default
+   face — serves both `plain` and `brand`. CJK is deliberately NOT shipped as
+   a webfont: Roboto has no Hangul/Kana, so the stack hands those glyphs to
+   the OS (Noto Sans JP/KR on stock Android/Linux, Apple SD Gothic Neo / Hiragino
+   on macOS/iOS) instead of adding multi-megabyte font payloads.
+
+   Usage:  font: var(--m3-typescale-body-medium);
+           letter-spacing: var(--m3-typescale-body-medium-tracking);
+   Or a class: <p class="m3-typescale-title-large"> */
+
+:root {
+  --m3-typeface-plain: "Roboto Variable", "Roboto", "Noto Sans JP", "Noto Sans KR",
+    "Apple SD Gothic Neo", "Hiragino Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --m3-typeface-brand: var(--m3-typeface-plain);
+  --m3-typeface-mono: "Roboto Mono", "JetBrains Mono", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
+
+  /* ── Baseline scale ── */
+  --m3-typescale-display-large: 400 3.5625rem/4rem var(--m3-typeface-brand);
+  --m3-typescale-display-medium: 400 2.8125rem/3.25rem var(--m3-typeface-brand);
+  --m3-typescale-display-small: 400 2.25rem/2.75rem var(--m3-typeface-brand);
+  --m3-typescale-headline-large: 400 2rem/2.5rem var(--m3-typeface-brand);
+  --m3-typescale-headline-medium: 400 1.75rem/2.25rem var(--m3-typeface-brand);
+  --m3-typescale-headline-small: 400 1.5rem/2rem var(--m3-typeface-brand);
+  --m3-typescale-title-large: 400 1.375rem/1.75rem var(--m3-typeface-brand);
+  --m3-typescale-title-medium: 500 1rem/1.5rem var(--m3-typeface-plain);
+  --m3-typescale-title-small: 500 0.875rem/1.25rem var(--m3-typeface-plain);
+  --m3-typescale-body-large: 400 1rem/1.5rem var(--m3-typeface-plain);
+  --m3-typescale-body-medium: 400 0.875rem/1.25rem var(--m3-typeface-plain);
+  --m3-typescale-body-small: 400 0.75rem/1rem var(--m3-typeface-plain);
+  --m3-typescale-label-large: 500 0.875rem/1.25rem var(--m3-typeface-plain);
+  --m3-typescale-label-medium: 500 0.75rem/1rem var(--m3-typeface-plain);
+  --m3-typescale-label-small: 500 0.6875rem/1rem var(--m3-typeface-plain);
+
+  --m3-typescale-display-large-tracking: -0.015625rem;
+  --m3-typescale-display-medium-tracking: 0;
+  --m3-typescale-display-small-tracking: 0;
+  --m3-typescale-headline-large-tracking: 0;
+  --m3-typescale-headline-medium-tracking: 0;
+  --m3-typescale-headline-small-tracking: 0;
+  --m3-typescale-title-large-tracking: 0;
+  --m3-typescale-title-medium-tracking: 0.009375rem;
+  --m3-typescale-title-small-tracking: 0.00625rem;
+  --m3-typescale-body-large-tracking: 0.03125rem;
+  --m3-typescale-body-medium-tracking: 0.015625rem;
+  --m3-typescale-body-small-tracking: 0.025rem;
+  --m3-typescale-label-large-tracking: 0.00625rem;
+  --m3-typescale-label-medium-tracking: 0.03125rem;
+  --m3-typescale-label-small-tracking: 0.03125rem;
+
+  /* ── Emphasized set (M3 Expressive): identical size and leading, one weight
+        step heavier, plus a small tracking delta. Use for the single element
+        on a screen that should carry extra weight. ── */
+  --m3-typescale-emphasized-display-large: 500 3.5625rem/4rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-display-medium: 500 2.8125rem/3.25rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-display-small: 500 2.25rem/2.75rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-headline-large: 500 2rem/2.5rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-headline-medium: 500 1.75rem/2.25rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-headline-small: 500 1.5rem/2rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-title-large: 500 1.375rem/1.75rem var(--m3-typeface-brand);
+  --m3-typescale-emphasized-title-medium: 700 1rem/1.5rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-title-small: 700 0.875rem/1.25rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-body-large: 500 1rem/1.5rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-body-medium: 500 0.875rem/1.25rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-body-small: 500 0.75rem/1rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-label-large: 700 0.875rem/1.25rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-label-medium: 700 0.75rem/1rem var(--m3-typeface-plain);
+  --m3-typescale-emphasized-label-small: 700 0.6875rem/1rem var(--m3-typeface-plain);
+
+  --m3-typescale-emphasized-display-large-tracking: -0.015625rem;
+  --m3-typescale-emphasized-display-medium-tracking: 0;
+  --m3-typescale-emphasized-display-small-tracking: 0;
+  --m3-typescale-emphasized-headline-large-tracking: 0;
+  --m3-typescale-emphasized-headline-medium-tracking: 0;
+  --m3-typescale-emphasized-headline-small-tracking: 0;
+  --m3-typescale-emphasized-title-large-tracking: 0;
+  --m3-typescale-emphasized-title-medium-tracking: calc(0.009375rem + 0.15px);
+  --m3-typescale-emphasized-title-small-tracking: calc(0.00625rem + 0.1px);
+  --m3-typescale-emphasized-body-large-tracking: calc(0.03125rem + 0.15px);
+  --m3-typescale-emphasized-body-medium-tracking: calc(0.015625rem + 0.25px);
+  --m3-typescale-emphasized-body-small-tracking: calc(0.025rem + 0.4px);
+  --m3-typescale-emphasized-label-large-tracking: calc(0.00625rem + 0.1px);
+  --m3-typescale-emphasized-label-medium-tracking: calc(0.03125rem + 0.5px);
+  --m3-typescale-emphasized-label-small-tracking: calc(0.03125rem + 0.5px);
+}
+
+/* ── Utilities: apply size, leading, tracking and weight together ── */
+.m3-typescale-display-large { font: var(--m3-typescale-display-large); letter-spacing: var(--m3-typescale-display-large-tracking); }
+.m3-typescale-display-medium { font: var(--m3-typescale-display-medium); letter-spacing: var(--m3-typescale-display-medium-tracking); }
+.m3-typescale-display-small { font: var(--m3-typescale-display-small); letter-spacing: var(--m3-typescale-display-small-tracking); }
+.m3-typescale-headline-large { font: var(--m3-typescale-headline-large); letter-spacing: var(--m3-typescale-headline-large-tracking); }
+.m3-typescale-headline-medium { font: var(--m3-typescale-headline-medium); letter-spacing: var(--m3-typescale-headline-medium-tracking); }
+.m3-typescale-headline-small { font: var(--m3-typescale-headline-small); letter-spacing: var(--m3-typescale-headline-small-tracking); }
+.m3-typescale-title-large { font: var(--m3-typescale-title-large); letter-spacing: var(--m3-typescale-title-large-tracking); }
+.m3-typescale-title-medium { font: var(--m3-typescale-title-medium); letter-spacing: var(--m3-typescale-title-medium-tracking); }
+.m3-typescale-title-small { font: var(--m3-typescale-title-small); letter-spacing: var(--m3-typescale-title-small-tracking); }
+.m3-typescale-body-large { font: var(--m3-typescale-body-large); letter-spacing: var(--m3-typescale-body-large-tracking); }
+.m3-typescale-body-medium { font: var(--m3-typescale-body-medium); letter-spacing: var(--m3-typescale-body-medium-tracking); }
+.m3-typescale-body-small { font: var(--m3-typescale-body-small); letter-spacing: var(--m3-typescale-body-small-tracking); }
+.m3-typescale-label-large { font: var(--m3-typescale-label-large); letter-spacing: var(--m3-typescale-label-large-tracking); }
+.m3-typescale-label-medium { font: var(--m3-typescale-label-medium); letter-spacing: var(--m3-typescale-label-medium-tracking); }
+.m3-typescale-label-small { font: var(--m3-typescale-label-small); letter-spacing: var(--m3-typescale-label-small-tracking); }

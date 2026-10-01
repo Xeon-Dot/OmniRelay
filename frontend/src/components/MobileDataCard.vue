@@ -23,46 +23,44 @@ defineProps<{
 
 <style scoped>
 .mobile-card {
-  background: var(--color-surface, #131316);
-  border: 1px solid var(--clr-border, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-card, 12px);
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--m3-elevation-2-surface);
+  border: 1px solid var(--m3-color-outline-variant);
+  border-radius: var(--m3-shape-xl);
+  padding: var(--m3-space-200);
 }
+
 .mobile-card__row {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  gap: var(--m3-space-200);
+  padding-block: var(--m3-space-75, 6px);
 }
-.mobile-card__row:last-child {
-  border-bottom: none;
+
+.mobile-card__row + .mobile-card__row {
+  border-block-start: 1px solid var(--m3-color-outline-variant);
 }
+
 .mobile-card__label {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #7c7a75;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-label-medium);
+  letter-spacing: var(--m3-typescale-label-medium-tracking);
 }
+
 .mobile-card__value {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.82rem;
-  color: #e8e6e1;
-  text-align: right;
-  word-break: break-word;
+  color: var(--m3-color-on-surface);
+  font: var(--m3-typescale-body-medium);
+  letter-spacing: var(--m3-typescale-body-medium-tracking);
+  text-align: end;
+  overflow-wrap: anywhere;
 }
+
 .mobile-card__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  padding-top: 8px;
-  margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  gap: var(--m3-space-100);
+  margin-block-start: var(--m3-space-100);
+  padding-block-start: var(--m3-space-100);
+  border-block-start: 1px solid var(--m3-color-outline-variant);
 }
 </style>

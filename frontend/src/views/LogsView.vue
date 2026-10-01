@@ -1,65 +1,48 @@
 <template>
   <div class="page">
     <PageHeader :title="$t('logs.title')" :subtitle="$t('logs.subtitle')">
-      <button class="btn-tonal" @click="loadLogs">
-        <v-icon size="15">mdi-refresh</v-icon>
+      <OrButton variant="tonal" :loading="store.loading" @click="loadLogs">
+        <template #leading>
+          <OrIcon name="refresh" :size="15" />
+        </template>
         {{ $t("common.refresh") }}
-      </button>
+      </OrButton>
     </PageHeader>
 
     <!-- Filter bar -->
     <div class="filter-bar">
       <div class="filter-col">
-        <label class="field-label">{{ $t("logs.model") }}</label>
-        <input
+        <OrTextField
           v-model="filters.model"
-          class="field-input"
-          :placeholder="$t('logs.modelFilter')"
+          :label="$t('logs.model')"
+          :hint="$t('logs.modelFilter')"
         />
       </div>
       <div class="filter-col">
-        <label class="field-label">{{ $t("logs.provider") }}</label>
-        <input
+        <OrTextField
           v-model="filters.provider"
-          class="field-input"
-          :placeholder="$t('logs.providerFilter')"
+          :label="$t('logs.provider')"
+          :hint="$t('logs.providerFilter')"
         />
       </div>
       <div class="filter-col">
-        <label class="field-label">{{ $t("logs.from") }}</label>
-        <input
-          v-model="filters.from"
-          type="date"
-          class="field-input field-input--date"
-        />
+        <OrTextField v-model="filters.from" type="date" :label="$t('logs.from')" />
       </div>
       <div class="filter-col">
-        <label class="field-label">{{ $t("logs.to") }}</label>
-        <input
-          v-model="filters.to"
-          type="date"
-          class="field-input field-input--date"
-        />
+        <OrTextField v-model="filters.to" type="date" :label="$t('logs.to')" />
       </div>
-      <button
-        class="btn-primary filter-submit"
-        @click="loadLogs"
-        :disabled="store.loading"
-      >
-        <span v-if="!store.loading">{{ $t("common.apply") }}</span>
-        <span v-else class="btn-spinner" />
-      </button>
+      <OrButton class="filter-submit" :loading="store.loading" @click="loadLogs">
+        {{ $t("common.apply") }}
+      </OrButton>
     </div>
 
     <div class="table-card">
-      <v-data-table
+      <OrDataTable
         :headers="headers"
         :items="store.logs"
         :loading="store.loading"
         density="compact"
-        hide-default-footer
-        :items-per-page="-1"
-        fixed-header
+        :label="$t('logs.title')"
       >
         <template #item.started_at="{ item }">
           <span class="dim-text">{{
@@ -121,9 +104,34 @@
           </StatusChip>
         </template>
         <template #no-data>
-          <EmptyState icon="mdi-text-box-search-outline" :text="$t('logs.noRecords')" />
+          <EmptyState icon="manage_search" :text="$t('logs.noRecords')" />
         </template>
-      </v-data-table>
+
+        <template #footer>
+          <div class="pager">
+            <span class="mono-val">{{ store.logs.length }}</span>
+            <span class="dim-text"> {{ $t("logs.of") }} </span>
+            <span class="mono-val">{{ store.total }}</span>
+            <span class="dim-text"> {{ $t("logs.records") }}</span>
+            <div class="pagination-btns">
+              <OrIconButton
+                icon="chevron_left"
+                :label="$t('common.previous')"
+                size="sm"
+                :disabled="offset <= 0"
+                @click="prevPage"
+              />
+              <OrIconButton
+                icon="chevron_right"
+                :label="$t('common.next')"
+                size="sm"
+                :disabled="offset + limit >= store.total"
+                @click="nextPage"
+              />
+            </div>
+          </div>
+        </template>
+      </OrDataTable>
 
       <!-- Mobile cards -->
       <div class="mobile-cards">
@@ -156,30 +164,7 @@
             },
           ]"
         />
-        <EmptyState v-if="!store.logs.length" icon="mdi-text-box-search-outline" :text="$t('logs.noRecords')" />
-      </div>
-
-      <div class="table-footer">
-        <span class="mono-val">{{ store.logs.length }}</span>
-        <span class="dim-text"> {{ $t("logs.of") }} </span>
-        <span class="mono-val">{{ store.total }}</span>
-        <span class="dim-text"> {{ $t("logs.records") }}</span>
-        <div class="pagination-btns">
-          <button
-            class="row-btn pagination-btn"
-            :disabled="offset <= 0"
-            @click="prevPage"
-          >
-            <v-icon size="16">mdi-chevron-left</v-icon>
-          </button>
-          <button
-            class="row-btn pagination-btn"
-            :disabled="offset + limit >= store.total"
-            @click="nextPage"
-          >
-            <v-icon size="16">mdi-chevron-right</v-icon>
-          </button>
-        </div>
+        <EmptyState v-if="!store.logs.length" icon="manage_search" :text="$t('logs.noRecords')" />
       </div>
     </div>
   </div>
@@ -206,27 +191,27 @@ const offset = ref(0);
 const filters = ref({ model: "", provider: "", from: "", to: "" });
 
 const headers = computed(() => [
-  { title: t("logs.startedAt"), key: "started_at", minWidth: "140" },
-  { title: t("logs.completedAt"), key: "completed_at", minWidth: "140" },
-  { title: t("logs.duration"), key: "duration_sec", minWidth: "90" },
-  { title: t("logs.provider"), key: "provider_name", minWidth: "100" },
-  { title: t("logs.model"), key: "model", minWidth: "140" },
-  { title: t("logs.inputTokens"), key: "request_tokens", minWidth: "90" },
-  { title: t("logs.outputTokens"), key: "response_tokens", minWidth: "90" },
+  { title: t("logs.startedAt"), key: "started_at", minWidth: 140 },
+  { title: t("logs.completedAt"), key: "completed_at", minWidth: 140 },
+  { title: t("logs.duration"), key: "duration_sec", minWidth: 90 },
+  { title: t("logs.provider"), key: "provider_name", minWidth: 100 },
+  { title: t("logs.model"), key: "model", minWidth: 140 },
+  { title: t("logs.inputTokens"), key: "request_tokens", minWidth: 90 },
+  { title: t("logs.outputTokens"), key: "response_tokens", minWidth: 90 },
   {
     title: t("logs.cacheWrite5m"),
     key: "cache_write_5m_tokens",
-    minWidth: "90",
+    minWidth: 90,
   },
   {
     title: t("logs.cacheWrite1h"),
     key: "cache_write_1h_tokens",
-    minWidth: "90",
+    minWidth: 90,
   },
-  { title: t("logs.cacheRead"), key: "cache_read_tokens", minWidth: "90" },
-  { title: t("logs.totalTokens"), key: "total_tokens", minWidth: "90" },
-  { title: t("logs.totalCost"), key: "cost", minWidth: "100" },
-  { title: t("logs.status"), key: "is_error", minWidth: "80" },
+  { title: t("logs.cacheRead"), key: "cache_read_tokens", minWidth: 90 },
+  { title: t("logs.totalTokens"), key: "total_tokens", minWidth: 90 },
+  { title: t("logs.totalCost"), key: "cost", minWidth: 100 },
+  { title: t("logs.status"), key: "is_error", minWidth: 80 },
 ]);
 
 function formatTime(ts: string): string {
@@ -269,78 +254,49 @@ onUnmounted(() => {
 <style scoped>
 @import "../styles/page-shared.css";
 
+/* page-shared supplies the token colours for .dim-text / .mono-val /
+   .cost-val / .mono-val--accent; only the type treatment differs here. */
 .dim-text {
-  font-family: "DM Sans", sans-serif;
   font-size: 0.78rem;
-  color: #7c7a75;
 }
 .mono-val {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--m3-typeface-mono);
   font-size: 0.78rem;
-  color: #e8e6e1;
 }
-.mono-val--accent {
-  color: #e8a020;
-}
-.mono-val--slow {
-  color: #ff5757;
-}
-
 .cost-val {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--m3-typeface-mono);
   font-size: 0.75rem;
-  color: #2ec4b6;
 }
 
+/* The Or fields reserve a support line below the box, so lift the button
+   to sit flush with the field boxes instead of the hint baseline. */
 .filter-submit {
   align-self: flex-end;
+  margin-block-end: calc(var(--m3-space-75, 6px) + 1.25rem);
 }
 
-.field-input--date {
-  color-scheme: dark;
-}
-
-.table-footer {
+/* Rendered inside OrDataTable's .table-footer slot wrapper. */
+.pager {
   display: flex;
+  flex: 1;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
-  padding: 10px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.8rem;
-  color: #4a4844;
+  gap: var(--m3-space-100);
 }
 
 .pagination-btns {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 12px;
+  gap: var(--m3-space-50, 4px);
+  margin-inline-start: var(--m3-space-150);
 }
 
-.pagination-btn {
-  width: 26px;
-  height: 26px;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.mobile-cards {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .v-data-table {
+@media (max-width: 600px) {
+  /* MobileDataCard replaces the table below 600px; the pager stays. */
+  .table-card :deep(.or-table-scroll) {
     display: none;
   }
-  .mobile-cards {
-    display: block;
-  }
-  .table-footer {
+  .pager {
     justify-content: center;
   }
 }

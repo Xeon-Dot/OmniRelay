@@ -7,13 +7,22 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>OmniRelay — AI Inference Gateway</title>
+    <script>
+      /* Resolve the theme before first paint so there is no flash of the wrong
+         color scheme. Same key and fallback order as src/stores/theme.ts. */
+      (function () {
+        var mode = null;
+        try {
+          var stored = localStorage.getItem("omnirelay.theme");
+          if (stored === "light" || stored === "dark") mode = stored;
+        } catch (e) {
+          /* storage unavailable — use the system preference */
+        }
+        var dark = mode ? mode === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <div id="app"></div>

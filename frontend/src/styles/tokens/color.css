@@ -1,0 +1,141 @@
+/* color.css — M3 system color roles for source #6750A4.
+   Exactly two blocks; both declare the same 49 roles (scripts/tokens.test.mjs
+   enforces the parity). Values are resolved from palette.css so re-seeding
+   means editing one file. `data-theme` is set on <html> before first paint by
+   the inline script in index.html — there is no media-query copy of these
+   blocks, which is why parity matters. */
+
+:root[data-theme="light"] {
+  --m3-color-primary: var(--m3-palette-primary-40);
+  --m3-color-on-primary: var(--m3-palette-primary-100);
+  --m3-color-primary-container: var(--m3-palette-primary-90);
+  --m3-color-on-primary-container: var(--m3-palette-primary-10);
+  --m3-color-primary-fixed: var(--m3-palette-primary-90);
+  --m3-color-primary-fixed-dim: var(--m3-palette-primary-80);
+
+  --m3-color-secondary: var(--m3-palette-secondary-40);
+  --m3-color-on-secondary: var(--m3-palette-secondary-100);
+  --m3-color-secondary-container: var(--m3-palette-secondary-90);
+  --m3-color-on-secondary-container: var(--m3-palette-secondary-10);
+  --m3-color-secondary-fixed: var(--m3-palette-secondary-90);
+  --m3-color-secondary-fixed-dim: var(--m3-palette-secondary-80);
+
+  --m3-color-tertiary: var(--m3-palette-tertiary-40);
+  --m3-color-on-tertiary: var(--m3-palette-tertiary-100);
+  --m3-color-tertiary-container: var(--m3-palette-tertiary-90);
+  --m3-color-on-tertiary-container: var(--m3-palette-tertiary-10);
+  --m3-color-tertiary-fixed: var(--m3-palette-tertiary-90);
+  --m3-color-tertiary-fixed-dim: var(--m3-palette-tertiary-80);
+
+  --m3-color-error: var(--m3-palette-error-40);
+  --m3-color-on-error: var(--m3-palette-error-100);
+  --m3-color-error-container: var(--m3-palette-error-90);
+  --m3-color-on-error-container: var(--m3-palette-error-10);
+
+  --m3-color-background: var(--m3-palette-neutral-98);
+  --m3-color-on-background: var(--m3-palette-neutral-10);
+  --m3-color-surface: var(--m3-palette-neutral-98);
+  --m3-color-on-surface: var(--m3-palette-neutral-10);
+  --m3-color-surface-variant: var(--m3-palette-neutral-variant-90);
+  --m3-color-on-surface-variant: var(--m3-palette-neutral-variant-30);
+  --m3-color-surface-container-lowest: var(--m3-palette-neutral-100);
+  --m3-color-surface-container-low: var(--m3-palette-neutral-96);
+  --m3-color-surface-container: var(--m3-palette-neutral-94);
+  --m3-color-surface-container-high: var(--m3-palette-neutral-92);
+  --m3-color-surface-container-highest: var(--m3-palette-neutral-90);
+  --m3-color-surface-dim: var(--m3-palette-neutral-87);
+  --m3-color-surface-bright: var(--m3-palette-neutral-98);
+  --m3-color-surface-tint: var(--m3-palette-primary-40);
+
+  --m3-color-outline: var(--m3-palette-neutral-variant-50);
+  --m3-color-outline-variant: var(--m3-palette-neutral-variant-80);
+  --m3-color-inverse-surface: var(--m3-palette-neutral-20);
+  --m3-color-inverse-on-surface: var(--m3-palette-neutral-95);
+  --m3-color-inverse-primary: var(--m3-palette-primary-80);
+  --m3-color-scrim: var(--m3-palette-neutral-0);
+  --m3-color-shadow: var(--m3-palette-neutral-0);
+
+  /* theme-independent "fixed" roles */
+  --m3-color-on-primary-fixed: var(--m3-palette-primary-10);
+  --m3-color-on-primary-fixed-variant: var(--m3-palette-primary-30);
+  --m3-color-on-secondary-fixed: var(--m3-palette-secondary-10);
+  --m3-color-on-secondary-fixed-variant: var(--m3-palette-secondary-30);
+  --m3-color-on-tertiary-fixed: var(--m3-palette-tertiary-10);
+  --m3-color-on-tertiary-fixed-variant: var(--m3-palette-tertiary-30);
+
+  /* App semantic aliases — M3 has no success/warning role (spec §3.4).
+     danger/error reuses the M3 error roles above. */
+  --or-success: #1b6b29;
+  --or-success-container: #c8e6c9;
+  --or-on-success-container: #0d3b13;
+  --or-warning: #b26a00;
+  --or-warning-container: #fbe3b0;
+  --or-on-warning-container: #422b00;
+}
+
+:root[data-theme="dark"] {
+  --m3-color-primary: var(--m3-palette-primary-80);
+  --m3-color-on-primary: var(--m3-palette-primary-20);
+  --m3-color-primary-container: var(--m3-palette-primary-30);
+  --m3-color-on-primary-container: var(--m3-palette-primary-90);
+  --m3-color-primary-fixed: var(--m3-palette-primary-90);
+  --m3-color-primary-fixed-dim: var(--m3-palette-primary-80);
+
+  --m3-color-secondary: var(--m3-palette-secondary-80);
+  --m3-color-on-secondary: var(--m3-palette-secondary-20);
+  --m3-color-secondary-container: var(--m3-palette-secondary-30);
+  --m3-color-on-secondary-container: var(--m3-palette-secondary-90);
+  --m3-color-secondary-fixed: var(--m3-palette-secondary-90);
+  --m3-color-secondary-fixed-dim: var(--m3-palette-secondary-80);
+
+  --m3-color-tertiary: var(--m3-palette-tertiary-80);
+  --m3-color-on-tertiary: var(--m3-palette-tertiary-20);
+  --m3-color-tertiary-container: var(--m3-palette-tertiary-30);
+  --m3-color-on-tertiary-container: var(--m3-palette-tertiary-90);
+  --m3-color-tertiary-fixed: var(--m3-palette-tertiary-90);
+  --m3-color-tertiary-fixed-dim: var(--m3-palette-tertiary-80);
+
+  --m3-color-error: var(--m3-palette-error-80);
+  --m3-color-on-error: var(--m3-palette-error-20);
+  --m3-color-error-container: var(--m3-palette-error-30);
+  --m3-color-on-error-container: var(--m3-palette-error-90);
+
+  --m3-color-background: var(--m3-palette-neutral-6);
+  --m3-color-on-background: var(--m3-palette-neutral-90);
+  --m3-color-surface: var(--m3-palette-neutral-6);
+  --m3-color-on-surface: var(--m3-palette-neutral-90);
+  --m3-color-surface-variant: var(--m3-palette-neutral-variant-30);
+  --m3-color-on-surface-variant: var(--m3-palette-neutral-variant-80);
+  --m3-color-surface-container-lowest: var(--m3-palette-neutral-4);
+  --m3-color-surface-container-low: var(--m3-palette-neutral-10);
+  --m3-color-surface-container: var(--m3-palette-neutral-12);
+  --m3-color-surface-container-high: var(--m3-palette-neutral-17);
+  --m3-color-surface-container-highest: var(--m3-palette-neutral-22);
+  --m3-color-surface-dim: var(--m3-palette-neutral-6);
+  --m3-color-surface-bright: var(--m3-palette-neutral-24);
+  --m3-color-surface-tint: var(--m3-palette-primary-80);
+
+  --m3-color-outline: var(--m3-palette-neutral-variant-60);
+  --m3-color-outline-variant: var(--m3-palette-neutral-variant-30);
+  --m3-color-inverse-surface: var(--m3-palette-neutral-90);
+  --m3-color-inverse-on-surface: var(--m3-palette-neutral-20);
+  --m3-color-inverse-primary: var(--m3-palette-primary-40);
+  --m3-color-scrim: var(--m3-palette-neutral-0);
+  --m3-color-shadow: var(--m3-palette-neutral-0);
+
+  /* theme-independent "fixed" roles */
+  --m3-color-on-primary-fixed: var(--m3-palette-primary-10);
+  --m3-color-on-primary-fixed-variant: var(--m3-palette-primary-30);
+  --m3-color-on-secondary-fixed: var(--m3-palette-secondary-10);
+  --m3-color-on-secondary-fixed-variant: var(--m3-palette-secondary-30);
+  --m3-color-on-tertiary-fixed: var(--m3-palette-tertiary-10);
+  --m3-color-on-tertiary-fixed-variant: var(--m3-palette-tertiary-30);
+
+  /* App semantic aliases (spec §3.4). */
+  --or-success: #7cd98d;
+  --or-success-container: #1b4d22;
+  --or-on-success-container: #b7eac1;
+  --or-warning: #ffdea1;
+  --or-warning-container: #5b4100;
+  --or-on-warning-container: #ffdea1;
+}

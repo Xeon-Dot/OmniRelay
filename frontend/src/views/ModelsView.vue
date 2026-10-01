@@ -1,19 +1,20 @@
 <template>
   <div class="page">
     <PageHeader :title="$t('models.title')" :subtitle="$t('models.subtitle')">
-      <button v-if="isAdmin" class="btn-primary" @click="openDialog()">
-        <v-icon size="15">mdi-plus</v-icon>
+      <OrButton v-if="isAdmin" variant="filled" @click="openDialog()">
+        <template #leading>
+          <OrIcon name="add" :size="15" />
+        </template>
         {{ $t("models.addModel") }}
-      </button>
+      </OrButton>
     </PageHeader>
 
-    <v-data-table
-      :headers="headers"
-      :items="store.models"
+    <OrDataTable
+      :headers="headers as any"
+      :items="store.models as unknown as Record<string, unknown>[]"
       :loading="store.loading"
       density="comfortable"
-      hide-default-footer
-      :items-per-page="-1"
+      :label="$t('models.title')"
     >
       <template #item.full_id="{ item }">
         <MonoTag>{{ item.provider_key }}/{{ item.model_id }}</MonoTag>
@@ -48,148 +49,132 @@
       <template #item.context_window="{ item }">
         <span class="mono-val">{{
           item.context_window
-            ? (item.context_window / 1000).toFixed(0) + "k"
+            ? ((item.context_window as number) / 1000).toFixed(0) + "k"
             : "—"
         }}</span>
       </template>
       <template #item.actions="{ item }">
         <div class="row-actions">
-          <button class="row-btn" title="Edit" @click="openEditDialog(item)">
-            <v-icon size="15">mdi-pencil-outline</v-icon>
-          </button>
-          <button
-            class="row-btn row-btn--danger"
-            title="Delete"
-            @click="handleDelete(item.id)"
-          >
-            <v-icon size="15">mdi-delete-outline</v-icon>
-          </button>
+          <OrIconButton
+            icon="edit"
+            :label="$t('common.edit')"
+            @click="openEditDialog(item)"
+          />
+          <OrIconButton
+            icon="delete"
+            tone="danger"
+            :label="$t('common.delete')"
+            @click="handleDelete(item.id as number)"
+          />
         </div>
       </template>
       <template #no-data>
-        <EmptyState icon="mdi-cube-off-outline" :text="$t('models.noModels')" />
+        <EmptyState icon="deployed_code_off" :text="$t('models.noModels')" />
       </template>
-    </v-data-table>
+    </OrDataTable>
 
-    <v-dialog
+    <OrDialog
       v-model="dialog"
-      :max-width="isMobile ? undefined : 500"
+      :width="500"
       :fullscreen="isMobile"
+      :title="editMode ? $t('models.editModel') : $t('models.addModel')"
     >
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title">
-            {{ editMode ? $t("models.editModel") : $t("models.addModel") }}
-          </h2>
-          <button class="dialog-close" @click="dialog = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
+      <div class="form-stack">
+        <OrSelect
+          v-if="!editMode"
+          :model-value="
+            form.provider_id === null ? '' : String(form.provider_id)
+          "
+          :options="
+            providerOptions.map((p) => ({ value: String(p.value), label: p.text }))
+          "
+          :label="$t('models.provider')"
+          @update:model-value="form.provider_id = Number($event)"
+        />
+        <OrTextField
+          v-model="form.model_id"
+          :label="$t('models.modelId')"
+          placeholder="gpt-4o"
+        />
+        <OrTextField
+          v-model="form.display_name"
+          :label="$t('models.displayName')"
+          placeholder="GPT-4 Omni"
+        />
+        <div class="price-grid">
+          <OrTextField
+            :model-value="form.input_price_per_1mtok"
+            type="number"
+            step="0.01"
+            :label="$t('models.inputPrice')"
+            @update:model-value="
+              form.input_price_per_1mtok =
+                ($event === '' ? '' : Number($event)) as any
+            "
+          />
+          <OrTextField
+            :model-value="form.output_price_per_1mtok"
+            type="number"
+            step="0.01"
+            :label="$t('models.outputPrice')"
+            @update:model-value="
+              form.output_price_per_1mtok =
+                ($event === '' ? '' : Number($event)) as any
+            "
+          />
+          <OrTextField
+            :model-value="form.cache_write_5m_price_per_1mtok"
+            type="number"
+            step="0.01"
+            :label="$t('models.cacheWrite5m')"
+            @update:model-value="
+              form.cache_write_5m_price_per_1mtok =
+                ($event === '' ? '' : Number($event)) as any
+            "
+          />
+          <OrTextField
+            :model-value="form.cache_write_1h_price_per_1mtok"
+            type="number"
+            step="0.01"
+            :label="$t('models.cacheWrite1h')"
+            @update:model-value="
+              form.cache_write_1h_price_per_1mtok =
+                ($event === '' ? '' : Number($event)) as any
+            "
+          />
+          <OrTextField
+            :model-value="form.cache_read_price_per_1mtok"
+            type="number"
+            step="0.01"
+            :label="$t('models.cacheRead')"
+            @update:model-value="
+              form.cache_read_price_per_1mtok =
+                ($event === '' ? '' : Number($event)) as any
+            "
+          />
+          <OrTextField
+            :model-value="form.context_window"
+            type="number"
+            :label="$t('models.contextWindow')"
+            placeholder="128000"
+            @update:model-value="
+              form.context_window =
+                ($event === '' ? '' : Number($event)) as any
+            "
+          />
         </div>
-        <div class="dialog-body">
-          <div v-if="!editMode" class="field-group">
-            <label class="field-label">{{ $t("models.provider") }}</label>
-            <select v-model="form.provider_id" class="field-select">
-              <option
-                v-for="p in providerOptions"
-                :key="p.value"
-                :value="p.value"
-              >
-                {{ p.text }}
-              </option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label class="field-label">{{ $t("models.modelId") }}</label>
-            <input
-              v-model="form.model_id"
-              class="field-input"
-              placeholder="gpt-4o"
-            />
-          </div>
-          <div class="field-group">
-            <label class="field-label">{{ $t("models.displayName") }}</label>
-            <input
-              v-model="form.display_name"
-              class="field-input"
-              placeholder="GPT-4 Omni"
-            />
-          </div>
-          <div class="price-grid">
-            <div class="field-group">
-              <label class="field-label">{{ $t("models.inputPrice") }}</label>
-              <input
-                v-model.number="form.input_price_per_1mtok"
-                type="number"
-                step="0.01"
-                class="field-input"
-              />
-            </div>
-            <div class="field-group">
-              <label class="field-label">{{ $t("models.outputPrice") }}</label>
-              <input
-                v-model.number="form.output_price_per_1mtok"
-                type="number"
-                step="0.01"
-                class="field-input"
-              />
-            </div>
-            <div class="field-group">
-              <label class="field-label">{{ $t("models.cacheWrite5m") }}</label>
-              <input
-                v-model.number="form.cache_write_5m_price_per_1mtok"
-                type="number"
-                step="0.01"
-                class="field-input"
-              />
-            </div>
-            <div class="field-group">
-              <label class="field-label">{{ $t("models.cacheWrite1h") }}</label>
-              <input
-                v-model.number="form.cache_write_1h_price_per_1mtok"
-                type="number"
-                step="0.01"
-                class="field-input"
-              />
-            </div>
-            <div class="field-group">
-              <label class="field-label">{{ $t("models.cacheRead") }}</label>
-              <input
-                v-model.number="form.cache_read_price_per_1mtok"
-                type="number"
-                step="0.01"
-                class="field-input"
-              />
-            </div>
-            <div class="field-group">
-              <label class="field-label">{{
-                $t("models.contextWindow")
-              }}</label>
-              <input
-                v-model.number="form.context_window"
-                type="number"
-                class="field-input"
-                placeholder="128000"
-              />
-            </div>
-          </div>
-          <div v-if="dialogError" class="alert alert--error">
-            <v-icon size="14">mdi-alert-circle-outline</v-icon>
-            {{ dialogError }}
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-ghost" @click="dialog = false">
-            {{ $t("common.cancel") }}
-          </button>
-          <button class="btn-primary" @click="handleSave" :disabled="saving">
-            <span v-if="!saving">{{
-              editMode ? $t("common.update") : $t("common.create")
-            }}</span>
-            <span v-else class="btn-spinner" />
-          </button>
-        </div>
+        <AppAlert v-if="dialogError" variant="error">{{ dialogError }}</AppAlert>
       </div>
-    </v-dialog>
+
+      <template #footer>
+        <OrButton variant="text" @click="dialog = false">
+          {{ $t("common.cancel") }}
+        </OrButton>
+        <OrButton variant="filled" :loading="saving" @click="handleSave">
+          {{ editMode ? $t("common.update") : $t("common.create") }}
+        </OrButton>
+      </template>
+    </OrDialog>
   </div>
 </template>
 
@@ -203,6 +188,7 @@ import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusChip from "../components/StatusChip.vue";
 import MonoTag from "../components/MonoTag.vue";
+import AppAlert from "../components/AppAlert.vue";
 import { useMobile } from "../composables/useMobile";
 
 const { t } = useI18n();
@@ -342,49 +328,52 @@ onMounted(async () => {
 <style scoped>
 @import "../styles/page-shared.css";
 
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m3-space-200);
+}
 .mono-val {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.82rem;
-  color: #7c7a75;
+  font: var(--m3-typescale-body-small);
+  font-family: var(--m3-typeface-mono);
+  letter-spacing: var(--m3-typescale-body-small-tracking);
+  color: var(--m3-color-on-surface-variant);
 }
 .pricing-cell {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--m3-space-75);
   flex-wrap: wrap;
 }
 .pricing-pair {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--m3-space-50);
 }
 .pricing-key {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.68rem;
-  color: #4a4844;
+  font: var(--m3-typescale-label-small);
+  font-family: var(--m3-typeface-mono);
+  letter-spacing: var(--m3-typescale-label-small-tracking);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--m3-color-on-surface-variant);
 }
 .pricing-val {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.78rem;
-  color: #e8e6e1;
+  font: var(--m3-typescale-label-medium);
+  font-family: var(--m3-typeface-mono);
+  letter-spacing: var(--m3-typescale-label-medium-tracking);
+  color: var(--m3-color-on-surface);
 }
 .pricing-sep {
-  color: #2c2c32;
-  font-size: 0.9rem;
+  color: var(--m3-color-outline);
 }
 .price-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--m3-space-150);
 }
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .price-grid {
     grid-template-columns: 1fr;
-  }
-  .v-data-table {
-    display: block;
   }
 }
 </style>

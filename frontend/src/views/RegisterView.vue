@@ -1,199 +1,65 @@
 <template>
   <AuthShell :title="$t('auth.registerTitle')" :subtitle="$t('auth.registerSubtitle')">
     <form class="auth-form" @submit.prevent="handleRegister">
-      <div class="field-group">
-        <label class="field-label">{{ $t("auth.username") }}</label>
-        <div class="field-wrap">
-          <svg
-            class="field-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-          >
-            <circle
-              cx="8"
-              cy="5.5"
-              r="2.5"
-              stroke="currentColor"
-              stroke-width="1.25"
-            />
-            <path
-              d="M2.5 13c0-2.485 2.462-4.5 5.5-4.5s5.5 2.015 5.5 4.5"
-              stroke="currentColor"
-              stroke-width="1.25"
-              stroke-linecap="round"
-            />
-          </svg>
-          <input
-            v-model="username"
-            type="text"
-            class="field-input"
-            placeholder="admin"
-            autocomplete="username"
-            required
-          />
-        </div>
-      </div>
+      <OrTextField
+        v-model="username"
+        :label="$t('auth.username')"
+        leading-icon="person"
+        placeholder="admin"
+        autocomplete="username"
+        required
+      />
 
-      <div class="field-group">
-        <label class="field-label">{{ $t("auth.email") }}</label>
-        <div class="field-wrap">
-          <svg
-            class="field-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-          >
-            <rect
-              x="1.5"
-              y="3.5"
-              width="13"
-              height="9"
-              rx="1.5"
-              stroke="currentColor"
-              stroke-width="1.25"
-            />
-            <path
-              d="M1.5 3.5l6.5 4.5 6.5-4.5"
-              stroke="currentColor"
-              stroke-width="1.25"
-              stroke-linecap="round"
-            />
-          </svg>
-          <input
-            v-model="email"
-            type="email"
-            class="field-input"
-            placeholder="admin@example.com"
-            autocomplete="email"
-            required
-          />
-        </div>
-      </div>
+      <OrTextField
+        v-model="email"
+        type="email"
+        :label="$t('auth.email')"
+        leading-icon="email"
+        placeholder="admin@example.com"
+        autocomplete="email"
+        required
+      />
 
-      <div class="field-group">
-        <label class="field-label">{{ $t("auth.password") }}</label>
-        <div
-          class="field-wrap"
-          :class="{
-            'field-wrap--mismatch':
-              password && confirmPassword && password !== confirmPassword,
-          }"
-        >
-          <svg
-            class="field-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-          >
-            <rect
-              x="3.5"
-              y="7"
-              width="9"
-              height="6.5"
-              rx="1.25"
-              stroke="currentColor"
-              stroke-width="1.25"
-            />
-            <path
-              d="M5.5 7V5.5a2.5 2.5 0 015 0V7"
-              stroke="currentColor"
-              stroke-width="1.25"
-            />
-            <circle cx="8" cy="10.25" r="1" fill="currentColor" />
-          </svg>
-          <input
-            v-model="password"
-            :type="showPw ? 'text' : 'password'"
-            class="field-input"
-            placeholder="••••••••"
-            autocomplete="new-password"
-            required
-          />
-          <button
-            type="button"
-            class="pw-toggle"
-            @click="showPw = !showPw"
+      <OrTextField
+        v-model="password"
+        :type="showPw ? 'text' : 'password'"
+        :label="$t('auth.password')"
+        leading-icon="lock"
+        :hint="$t('auth.passwordRequirements')"
+        placeholder="••••••••"
+        autocomplete="new-password"
+        required
+      >
+        <template #trailing>
+          <OrIconButton
+            :icon="showPw ? 'visibility_off' : 'visibility'"
+            :label="$t('auth.togglePassword')"
+            size="sm"
             tabindex="-1"
-          >
-            <v-icon size="15">{{
-              showPw ? "mdi-eye-off-outline" : "mdi-eye-outline"
-            }}</v-icon>
-          </button>
-        </div>
-        <span class="field-hint">{{
-          $t("auth.passwordRequirements")
-        }}</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">{{ $t("auth.confirmPassword") }}</label>
-        <div
-          class="field-wrap"
-          :class="{
-            'field-wrap--mismatch':
-              password && confirmPassword && password !== confirmPassword,
-          }"
-        >
-          <svg
-            class="field-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-          >
-            <rect
-              x="3.5"
-              y="7"
-              width="9"
-              height="6.5"
-              rx="1.25"
-              stroke="currentColor"
-              stroke-width="1.25"
-            />
-            <path
-              d="M5.5 7V5.5a2.5 2.5 0 015 0V7"
-              stroke="currentColor"
-              stroke-width="1.25"
-            />
-            <circle cx="8" cy="10.25" r="1" fill="currentColor" />
-          </svg>
-          <input
-            v-model="confirmPassword"
-            :type="showPw ? 'text' : 'password'"
-            class="field-input"
-            placeholder="••••••••"
-            autocomplete="new-password"
-            required
+            @click="showPw = !showPw"
           />
-        </div>
-        <span
-          v-if="password && confirmPassword && password !== confirmPassword"
-          class="field-hint-error"
-          >{{ $t("auth.passwordsDontMatch") }}</span
-        >
-      </div>
+        </template>
+      </OrTextField>
+
+      <OrTextField
+        v-model="confirmPassword"
+        :type="showPw ? 'text' : 'password'"
+        :label="$t('auth.confirmPassword')"
+        leading-icon="lock"
+        :error="mismatch ? $t('auth.passwordsDontMatch') : ''"
+        placeholder="••••••••"
+        autocomplete="new-password"
+        required
+      />
 
       <div v-if="error" class="auth-error">
-        <v-icon size="14">mdi-alert-circle-outline</v-icon>
+        <OrIcon name="error" :size="14" />
         {{ error }}
       </div>
 
-      <button
-        type="submit"
-        class="auth-submit"
-        :class="{
-          'auth-submit--loading': loading,
-          'auth-submit--disabled': password !== confirmPassword,
-        }"
-        :disabled="password !== confirmPassword"
-      >
-        <span v-if="!loading">{{ $t("auth.createAccount") }}</span>
-        <span v-else class="submit-spinner" />
-      </button>
+      <OrButton type="submit" :loading="loading" :disabled="mismatch" block>
+        {{ $t("auth.createAccount") }}
+      </OrButton>
     </form>
 
     <template #footer>
@@ -204,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "../stores/auth";
@@ -220,6 +86,13 @@ const confirmPassword = ref("");
 const error = ref("");
 const loading = ref(false);
 const showPw = ref(false);
+
+const mismatch = computed(
+  () =>
+    Boolean(password.value) &&
+    Boolean(confirmPassword.value) &&
+    password.value !== confirmPassword.value,
+);
 
 async function handleRegister() {
   if (password.value !== confirmPassword.value) return;

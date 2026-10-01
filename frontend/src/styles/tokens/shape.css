@@ -1,0 +1,33 @@
+/* shape.css — M3 corner ladder plus the M3 Expressive "increased" steps.
+   State changes morph between these with the spatial springs; see
+   motion.css and the --or-motion-spatial-* shorthands. */
+
+:root {
+  --m3-shape-none: 0;
+  --m3-shape-xs: 4px; /* M3 extra-small */
+  --m3-shape-sm: 8px; /* M3 small */
+  --m3-shape-md: 12px; /* M3 medium */
+  --m3-shape-lg: 16px; /* M3 large */
+  --m3-shape-xl: 20px; /* M3E large-increased */
+  --m3-shape-2xl: 28px; /* M3 extra-large */
+  --m3-shape-3xl: 32px; /* M3E extra-large-increased */
+  --m3-shape-4xl: 48px; /* M3E extra-extra-large */
+  --m3-shape-full: 9999px; /* stadium / pill */
+}
+
+/* ── Canonical morph pairs (rest → pressed/selected/focused) ──
+   Components read these instead of hand-picking corners, so every control
+   morphs the same way. */
+:root {
+  --or-morph-button-rest: var(--m3-shape-full);
+  --or-morph-button-active: var(--m3-shape-xs);
+  --or-morph-card-rest: var(--m3-shape-2xl);
+  --or-morph-card-active: var(--m3-shape-lg);
+  --or-morph-chip-rest: var(--m3-shape-full);
+  --or-morph-chip-active: var(--m3-shape-md);
+  --or-morph-field-rest: var(--m3-shape-sm);
+  --or-morph-field-active: var(--m3-shape-xs);
+  --or-morph-dialog-enter: var(--m3-shape-4xl);
+  --or-morph-dialog-rest: var(--m3-shape-2xl);
+  --or-morph-nav-active: var(--m3-shape-full);
+}

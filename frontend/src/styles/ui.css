@@ -1,0 +1,67 @@
+/* ui.css — state-layer primitives shared by every interactive control.
+   M3 paints hover/focus/press as a translucent overlay in the container's own
+   text colour (currentColor), so one rule serves primary, tonal, outlined and
+   text variants without each one re-deriving the colour. */
+
+.or-interactive {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.or-interactive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--or-motion-effects-fast);
+}
+
+.or-interactive:hover:not(:disabled)::after {
+  opacity: var(--m3-state-hover);
+}
+
+.or-interactive:focus-visible::after {
+  opacity: var(--m3-state-focus);
+}
+
+.or-interactive:active:not(:disabled)::after {
+  opacity: var(--m3-state-press);
+}
+
+.or-interactive:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+/* ── Ripple ──
+   Added by the v-ripple directive on pointerdown. Spans are absolutely
+   positioned and removed when their animation ends. */
+.or-ripple {
+  position: absolute;
+  z-index: -1;
+  border-radius: var(--m3-shape-full);
+  background: currentColor;
+  pointer-events: none;
+  opacity: var(--m3-state-press);
+  transform: scale(0);
+  animation: or-ripple-expand var(--m3-duration-long2) var(--m3-easing-standard) forwards;
+}
+
+@keyframes or-ripple-expand {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Under reduced motion the global gate collapses the animation, so also
+   suppress the element outright rather than flash a dot. */
+@media (prefers-reduced-motion: reduce) {
+  .or-ripple {
+    display: none;
+  }
+}

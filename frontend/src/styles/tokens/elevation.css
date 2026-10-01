@@ -1,0 +1,31 @@
+/* elevation.css — M3 elevation is read primarily as *tone*, not shadow: a
+   higher element sits on a higher surface-container. Shadows are reserved for
+   transient overlays (dialog, menu) and dragged items, per spec §3.8. */
+
+:root {
+  /* Tonal elevation ladder: level → surface role */
+  --m3-elevation-0-surface: var(--m3-color-surface);
+  --m3-elevation-1-surface: var(--m3-color-surface-container-low);
+  --m3-elevation-2-surface: var(--m3-color-surface-container);
+  --m3-elevation-3-surface: var(--m3-color-surface-container-high);
+  --m3-elevation-4-surface: var(--m3-color-surface-container-highest);
+  --m3-elevation-5-surface: var(--m3-color-surface-container-highest);
+
+  /* Numeric dp ladder (M3 md.sys.elevation) */
+  --m3-elevation-dp-0: 0;
+  --m3-elevation-dp-1: 1px;
+  --m3-elevation-dp-2: 3px;
+  --m3-elevation-dp-3: 6px;
+  --m3-elevation-dp-4: 8px;
+  --m3-elevation-dp-5: 12px;
+
+  /* Shadows — transient overlays only */
+  --m3-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --m3-shadow-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --m3-shadow-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+  --m3-shadow-4: 0 2px 3px rgb(0 0 0 / 0.3), 0 6px 10px 4px rgb(0 0 0 / 0.15);
+  --m3-shadow-5: 0 4px 4px rgb(0 0 0 / 0.3), 0 8px 12px 6px rgb(0 0 0 / 0.15);
+
+  /* Scrim behind dialogs and navigation bars */
+  --m3-scrim: rgb(0 0 0 / 0.4);
+}

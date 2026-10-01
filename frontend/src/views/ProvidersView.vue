@@ -1,10 +1,12 @@
 <template>
   <div class="page">
     <PageHeader :title="$t('providers.title')" :subtitle="$t('providers.subtitle')">
-      <button v-if="isAdmin" class="btn-primary" @click="openDialog()">
-        <v-icon size="15">mdi-plus</v-icon>
+      <OrButton v-if="isAdmin" variant="filled" @click="openDialog()">
+        <template #leading>
+          <OrIcon name="add" :size="15" />
+        </template>
         {{ $t("providers.addProvider") }}
-      </button>
+      </OrButton>
     </PageHeader>
 
     <AppAlert v-if="testResult && testResult.ok" variant="success" page>
@@ -17,13 +19,12 @@
     <AppAlert v-if="syncError" variant="error" page>{{ syncError }}</AppAlert>
 
     <div class="table-card">
-      <v-data-table
-        :headers="headers"
-        :items="store.providers"
+      <OrDataTable
+        :headers="headers as any"
+        :items="store.providers as unknown as Record<string, unknown>[]"
         :loading="store.loading"
         density="comfortable"
-        hide-default-footer
-        :items-per-page="-1"
+        :label="$t('providers.title')"
       >
         <template #item.provider_key="{ item }">
           <MonoTag>{{ item.provider_key }}</MonoTag>
@@ -34,44 +35,49 @@
           </StatusChip>
         </template>
         <template #item.provider_type="{ item }">
-          <span class="type-chip">{{ item.provider_type }}</span>
+          <OrChip>{{ item.provider_type }}</OrChip>
         </template>
         <template #item.actions="{ item }">
           <div class="row-actions">
-            <button
-              class="row-btn"
-              :title="$t('providers.test')"
-              :disabled="testingId === item.id"
-              @click="handleTest(item.id)"
-            >
-              <v-icon v-if="testingId !== item.id" size="15">mdi-connection</v-icon>
-              <span v-else class="btn-spinner btn-spinner--sm" />
-            </button>
-            <button class="row-btn" title="Edit" @click="openDialog(item)">
-              <v-icon size="15">mdi-pencil-outline</v-icon>
-            </button>
-            <button
-              class="row-btn"
-              title="Sync Models"
-              :disabled="syncingId === item.id"
-              @click="handleSync(item.id)"
-            >
-              <v-icon v-if="syncingId !== item.id" size="15">mdi-sync</v-icon>
-              <span v-else class="btn-spinner btn-spinner--sm" />
-            </button>
-            <button
-              class="row-btn row-btn--danger"
-              title="Delete"
-              @click="handleDelete(item.id)"
-            >
-              <v-icon size="15">mdi-delete-outline</v-icon>
-            </button>
+            <OrSpinner
+              v-if="testingId === item.id"
+              :size="20"
+              :label="$t('common.loading')"
+            />
+            <OrIconButton
+              v-else
+              icon="cable"
+              :label="$t('providers.test')"
+              @click="handleTest(item.id as number)"
+            />
+            <OrIconButton
+              icon="edit"
+              :label="$t('common.edit')"
+              @click="openDialog(item)"
+            />
+            <OrSpinner
+              v-if="syncingId === item.id"
+              :size="20"
+              :label="$t('common.loading')"
+            />
+            <OrIconButton
+              v-else
+              icon="sync"
+              :label="$t('providers.sync')"
+              @click="handleSync(item.id as number)"
+            />
+            <OrIconButton
+              icon="delete"
+              tone="danger"
+              :label="$t('common.delete')"
+              @click="handleDelete(item.id as number)"
+            />
           </div>
         </template>
         <template #no-data>
-          <EmptyState icon="mdi-server-off" :text="$t('providers.noProviders')" />
+          <EmptyState icon="cloud_off" :text="$t('providers.noProviders')" />
         </template>
-      </v-data-table>
+      </OrDataTable>
     </div>
 
     <!-- Mobile cards -->
@@ -92,278 +98,246 @@
         ]"
       >
         <template v-if="isAdmin" #actions>
-          <button
-            class="row-btn"
-            :title="$t('providers.test')"
-            :disabled="testingId === p.id"
+          <OrSpinner
+            v-if="testingId === p.id"
+            :size="20"
+            :label="$t('common.loading')"
+          />
+          <OrIconButton
+            v-else
+            icon="cable"
+            :label="$t('providers.test')"
             @click="handleTest(p.id)"
-          >
-            <v-icon v-if="testingId !== p.id" size="15">mdi-connection</v-icon>
-            <span v-else class="btn-spinner btn-spinner--sm" />
-          </button>
-          <button class="row-btn" title="Edit" @click="openDialog(p)">
-            <v-icon size="15">mdi-pencil-outline</v-icon>
-          </button>
-          <button
-            class="row-btn"
-            title="Sync Models"
-            :disabled="syncingId === p.id"
+          />
+          <OrIconButton
+            icon="edit"
+            :label="$t('common.edit')"
+            @click="openDialog(p)"
+          />
+          <OrSpinner
+            v-if="syncingId === p.id"
+            :size="20"
+            :label="$t('common.loading')"
+          />
+          <OrIconButton
+            v-else
+            icon="sync"
+            :label="$t('providers.sync')"
             @click="handleSync(p.id)"
-          >
-            <v-icon v-if="syncingId !== p.id" size="15">mdi-sync</v-icon>
-            <span v-else class="btn-spinner btn-spinner--sm" />
-          </button>
-          <button
-            class="row-btn row-btn--danger"
-            title="Delete"
+          />
+          <OrIconButton
+            icon="delete"
+            tone="danger"
+            :label="$t('common.delete')"
             @click="handleDelete(p.id)"
-          >
-            <v-icon size="15">mdi-delete-outline</v-icon>
-          </button>
+          />
         </template>
       </MobileDataCard>
       <EmptyState
         v-if="!store.providers.length"
-        icon="mdi-server-off"
+        icon="cloud_off"
         :text="$t('providers.noProviders')"
       />
     </div>
 
     <!-- Dialog -->
-    <v-dialog
+    <OrDialog
       v-model="dialog"
-      :max-width="isMobile ? undefined : 520"
+      :width="520"
       :fullscreen="isMobile"
+      :title="
+        editing
+          ? $t('providers.editProvider')
+          : $t('providers.addProvider')
+      "
     >
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title">
-            {{
-              editing
-                ? $t("providers.editProvider")
-                : $t("providers.addProvider")
-            }}
-          </h2>
-          <button class="dialog-close" @click="dialog = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
-        </div>
-
-        <div class="dialog-body">
-          <div class="field-group">
-            <label class="field-label">{{ $t("providers.providerKey") }}</label>
-            <input
-              v-model="form.provider_key"
-              class="field-input"
-              placeholder="e.g. openai, my-llama"
-              :disabled="!!editing"
+      <div class="form-stack">
+        <OrTextField
+          v-model="form.provider_key"
+          :label="$t('providers.providerKey')"
+          placeholder="e.g. openai, my-llama"
+          :disabled="!!editing"
+        />
+        <OrTextField
+          v-model="form.name"
+          :label="$t('providers.displayName')"
+          placeholder="e.g. OpenAI"
+        />
+        <OrTextField
+          v-if="form.provider_type !== 'custom'"
+          v-model="form.api_base_url"
+          :label="$t('providers.apiBaseUrl')"
+          placeholder="https://api.openai.com/v1"
+        />
+        <OrTextField
+          v-if="form.provider_type !== 'custom' && !editing"
+          v-model="form.api_key"
+          type="password"
+          :label="$t('providers.apiKey')"
+          placeholder="sk-..."
+        />
+        <div
+          v-if="form.provider_type !== 'custom' && editing"
+          class="field-group"
+        >
+          <span class="field-label">{{ $t("providers.apiKeys") }}</span>
+          <div
+            v-for="key in editing.api_keys"
+            :key="key.id"
+            class="key-row"
+          >
+            <span class="key-prefix" :title="$t('providers.keyPrefix')">{{
+              key.key_prefix
+            }}</span>
+            <div
+              class="key-active"
+              @click.prevent="handleSetKeyActive(key.id, !key.is_active)"
+            >
+              <OrCheckbox
+                :model-value="key.is_active"
+                :label="$t('providers.active')"
+              />
+            </div>
+            <OrIconButton
+              icon="delete"
+              tone="danger"
+              :label="$t('common.delete')"
+              @click="handleRemoveKey(key.id)"
             />
           </div>
-          <div class="field-group">
-            <label class="field-label">{{ $t("providers.displayName") }}</label>
-            <input
-              v-model="form.name"
-              class="field-input"
-              placeholder="e.g. OpenAI"
-            />
-          </div>
-          <div v-if="form.provider_type !== 'custom'" class="field-group">
-            <label class="field-label">{{ $t("providers.apiBaseUrl") }}</label>
-            <input
-              v-model="form.api_base_url"
-              class="field-input"
-              placeholder="https://api.openai.com/v1"
-            />
-          </div>
-          <div v-if="form.provider_type !== 'custom' && !editing" class="field-group">
-            <label class="field-label">{{ $t("providers.apiKey") }}</label>
-            <input
-              v-model="form.api_key"
+          <div class="endpoint-row">
+            <OrTextField
+              v-model="newKey"
               type="password"
-              class="field-input"
+              class="endpoint-field"
+              :label="$t('providers.apiKey')"
               placeholder="sk-..."
             />
-          </div>
-          <div v-if="form.provider_type !== 'custom' && editing" class="field-group">
-            <label class="field-label">{{ $t("providers.apiKeys") }}</label>
-            <div
-              v-for="key in editing.api_keys"
-              :key="key.id"
-              class="key-row"
+            <OrButton
+              variant="outlined"
+              :disabled="!newKey"
+              @click="handleAddKey"
             >
-              <span class="key-prefix" :title="$t('providers.keyPrefix')">{{
-                key.key_prefix
-              }}</span>
-              <label class="checkbox-row key-active">
-                <input
-                  type="checkbox"
-                  class="checkbox"
-                  :checked="key.is_active"
-                  @click.prevent="handleSetKeyActive(key.id, !key.is_active)"
-                />
-                <span class="checkbox-label">{{ $t("providers.active") }}</span>
-              </label>
-              <button
-                type="button"
-                class="row-btn row-btn--danger"
-                :title="$t('common.delete')"
-                @click="handleRemoveKey(key.id)"
-              >
-                <v-icon size="15">mdi-delete-outline</v-icon>
-              </button>
-            </div>
-            <div class="endpoint-row">
-              <input
-                v-model="newKey"
-                type="password"
-                class="field-input"
-                placeholder="sk-..."
-              />
-              <button
-                type="button"
-                class="btn-secondary"
-                :disabled="!newKey"
-                @click="handleAddKey"
-              >
-                {{ $t("providers.addKey") }}
-              </button>
-            </div>
+              {{ $t("providers.addKey") }}
+            </OrButton>
           </div>
-          <div class="field-group">
-            <label class="field-label">{{
-              $t("providers.providerType")
-            }}</label>
-            <select v-model="form.provider_type" class="field-select">
-              <option v-for="t in providerTypes" :key="t" :value="t">
-                {{ t }}
-              </option>
-            </select>
-          </div>
-          <div v-if="form.provider_type !== 'custom'" class="field-group">
-            <label class="field-label">{{
-              $t("providers.additionalFormats")
-            }}</label>
-            <p class="field-hint">{{ $t("providers.additionalFormatsHint") }}</p>
-            <div
-              v-for="(ep, i) in form.endpoints"
-              :key="i"
-              class="endpoint-row"
-            >
-              <select v-model="ep.api_type" class="field-select endpoint-select">
-                <option v-for="t in endpointTypes" :key="t" :value="t">
-                  {{ t }}
-                </option>
-              </select>
-              <input
-                v-model="ep.base_url"
-                class="field-input"
-                placeholder="https://..."
-              />
-              <button
-                class="row-btn row-btn--danger"
-                :title="$t('common.delete')"
-                @click="form.endpoints.splice(i, 1)"
-              >
-                <v-icon size="15">mdi-close</v-icon>
-              </button>
-            </div>
-            <button
-              type="button"
-              class="btn-secondary"
-              @click="form.endpoints.push({ api_type: 'openai', base_url: '' })"
-            >
-              <v-icon size="14">mdi-plus</v-icon>
-              {{ $t("providers.addFormat") }}
-            </button>
-          </div>
-          <div v-if="form.provider_type === 'custom'" class="field-group">
-            <label class="field-label">{{
-              $t("providers.sourceModels")
-            }}</label>
-            <p class="field-hint">{{ $t("providers.selectModelsHint") }}</p>
-            <div class="source-models-list">
-              <div
-                v-for="group in store.sourceModels"
-                :key="group.provider_key"
-                class="source-model-group"
-              >
-                <div class="source-model-group-header">
-                  <span class="source-model-group-name">{{ group.name }}</span>
-                  <span class="source-model-group-type">{{
-                    group.provider_type
-                  }}</span>
-                  <span class="source-model-group-key">{{
-                    group.provider_key
-                  }}</span>
-                </div>
-                <div
-                  v-for="model in group.models"
-                  :key="model.model_id"
-                  class="source-model-item"
-                >
-                  <label class="source-model-label">
-                    <input
-                      type="checkbox"
-                      :value="`${group.provider_key}/${model.model_id}`"
-                      v-model="form.source_models"
-                      class="checkbox"
-                    />
-                    <span class="source-model-id">{{ model.model_id }}</span>
-                  </label>
-                </div>
-              </div>
-              <div
-                v-if="!store.sourceModels.length"
-                class="empty-source-models"
-              >
-                {{ $t("providers.noSourceModels") }}
-              </div>
-            </div>
-          </div>
-          <label class="checkbox-row">
-            <input
-              type="checkbox"
-              v-model="form.show_in_model_list"
-              class="checkbox"
+        </div>
+        <OrSelect
+          v-model="form.provider_type"
+          :label="$t('providers.providerType')"
+          :options="providerTypes.map((type) => ({ value: type, label: type }))"
+        />
+        <div
+          v-if="form.provider_type !== 'custom'"
+          class="field-group"
+        >
+          <span class="field-label">{{
+            $t("providers.additionalFormats")
+          }}</span>
+          <p class="field-hint">{{ $t("providers.additionalFormatsHint") }}</p>
+          <div
+            v-for="(ep, i) in form.endpoints"
+            :key="i"
+            class="endpoint-row"
+          >
+            <OrSelect
+              v-model="ep.api_type"
+              class="endpoint-select"
+              :label="$t('providers.type')"
+              :options="
+                endpointTypes.map((type) => ({ value: type, label: type }))
+              "
             />
-            <div>
-              <span class="checkbox-label">{{
-                $t("providers.showInModelList")
-              }}</span>
-              <span class="checkbox-hint">{{
-                $t("providers.showInModelListHint")
-              }}</span>
-            </div>
-          </label>
-          <label v-if="form.provider_type !== 'custom'" class="checkbox-row">
-            <input type="checkbox" v-model="form.auto_sync" class="checkbox" />
-            <div>
-              <span class="checkbox-label">{{ $t("providers.autoSync") }}</span>
-              <span class="checkbox-hint">{{
-                $t("providers.autoSyncHint")
-              }}</span>
-            </div>
-          </label>
-
-          <AppAlert v-if="syncResult" variant="success">{{ syncResult }}</AppAlert>
-          <AppAlert v-if="dialogError || store.error" variant="error">{{
-            dialogError || store.error
-          }}</AppAlert>
+            <OrTextField
+              v-model="ep.base_url"
+              class="endpoint-field"
+              :label="$t('providers.apiBaseUrl')"
+              placeholder="https://..."
+            />
+            <OrIconButton
+              icon="close"
+              tone="danger"
+              :label="$t('common.delete')"
+              @click="form.endpoints.splice(i, 1)"
+            />
+          </div>
+          <OrButton
+            variant="outlined"
+            @click="form.endpoints.push({ api_type: 'openai', base_url: '' })"
+          >
+            <template #leading>
+              <OrIcon name="add" :size="14" />
+            </template>
+            {{ $t("providers.addFormat") }}
+          </OrButton>
         </div>
-
-        <div class="dialog-footer">
-          <button class="btn-ghost" @click="dialog = false">
-            {{ $t("common.cancel") }}
-          </button>
-          <button class="btn-primary" @click="handleSave" :disabled="saving">
-            <span v-if="!saving">{{
-              editing ? $t("common.update") : $t("common.create")
-            }}</span>
-            <span v-else class="btn-spinner" />
-          </button>
+        <div v-if="form.provider_type === 'custom'" class="field-group">
+          <span class="field-label">{{
+            $t("providers.sourceModels")
+          }}</span>
+          <p class="field-hint">{{ $t("providers.selectModelsHint") }}</p>
+          <div class="source-models-list">
+            <div
+              v-for="group in store.sourceModels"
+              :key="group.provider_key"
+              class="source-model-group"
+            >
+              <div class="source-model-group-header">
+                <span class="source-model-group-name">{{ group.name }}</span>
+                <span class="source-model-group-type">{{
+                  group.provider_type
+                }}</span>
+                <span class="source-model-group-key">{{
+                  group.provider_key
+                }}</span>
+              </div>
+              <div
+                v-for="model in group.models"
+                :key="model.model_id"
+                class="source-model-item"
+              >
+                <OrCheckbox
+                  v-model="form.source_models"
+                  :value="`${group.provider_key}/${model.model_id}`"
+                  :label="model.model_id"
+                />
+              </div>
+            </div>
+            <div
+              v-if="!store.sourceModels.length"
+              class="empty-source-models"
+            >
+              {{ $t("providers.noSourceModels") }}
+            </div>
+          </div>
         </div>
+        <OrCheckbox
+          v-model="form.show_in_model_list"
+          :label="$t('providers.showInModelList')"
+          :hint="$t('providers.showInModelListHint')"
+        />
+        <OrCheckbox
+          v-if="form.provider_type !== 'custom'"
+          v-model="form.auto_sync"
+          :label="$t('providers.autoSync')"
+          :hint="$t('providers.autoSyncHint')"
+        />
+
+        <AppAlert v-if="syncResult" variant="success">{{ syncResult }}</AppAlert>
+        <AppAlert v-if="dialogError || store.error" variant="error">{{
+          dialogError || store.error
+        }}</AppAlert>
       </div>
-    </v-dialog>
+
+      <template #footer>
+        <OrButton variant="text" @click="dialog = false">
+          {{ $t("common.cancel") }}
+        </OrButton>
+        <OrButton variant="filled" :loading="saving" @click="handleSave">
+          {{ editing ? $t("common.update") : $t("common.create") }}
+        </OrButton>
+      </template>
+    </OrDialog>
   </div>
 </template>
 
@@ -587,111 +561,91 @@ async function handleDelete(id: number) {
 
 <style scoped>
 @import "../styles/page-shared.css";
-.mobile-cards {
-  display: none;
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m3-space-200);
+}
+.field-hint {
+  margin-block-end: var(--m3-space-50);
 }
 .source-models-list {
-  max-height: 300px;
+  max-block-size: 300px;
   overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px;
-  margin-top: 4px;
+  border: 1px solid var(--m3-color-outline-variant);
+  border-radius: var(--m3-shape-md);
+  padding: var(--m3-space-200);
+  margin-block-start: var(--m3-space-50);
 }
 .source-model-group {
-  margin-bottom: 8px;
+  margin-block-end: var(--m3-space-200);
 }
 .source-model-group-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 0;
+  gap: var(--m3-space-75);
+  padding-block: var(--m3-space-50);
 }
 .source-model-group-name {
-  font-weight: 600;
-  font-size: 13px;
+  font: var(--m3-typescale-title-small);
+  letter-spacing: var(--m3-typescale-title-small-tracking);
 }
 .source-model-group-type {
-  font-size: 11px;
-  background: var(--chip-bg);
-  padding: 1px 6px;
-  border-radius: 4px;
+  font: var(--m3-typescale-label-small);
+  letter-spacing: var(--m3-typescale-label-small-tracking);
+  background: var(--m3-color-secondary-container);
+  color: var(--m3-color-on-secondary-container);
+  padding: var(--m3-space-25) var(--m3-space-75);
+  border-radius: var(--m3-shape-xs);
 }
 .source-model-group-key {
-  font-size: 11px;
-  color: var(--text-muted);
+  font: var(--m3-typescale-label-small);
+  letter-spacing: var(--m3-typescale-label-small-tracking);
+  color: var(--m3-color-on-surface-variant);
 }
 .source-model-item {
-  padding: 2px 0 2px 12px;
-}
-.source-model-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.source-model-id {
-  font-size: 12px;
-  font-family: monospace;
+  padding: var(--m3-space-25) 0 var(--m3-space-25) var(--m3-space-150);
 }
 .empty-source-models {
-  padding: 16px;
+  padding: var(--m3-space-300);
   text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-.field-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
+  font: var(--m3-typescale-body-medium);
+  letter-spacing: var(--m3-typescale-body-medium-tracking);
+  color: var(--m3-color-on-surface-variant);
 }
 .endpoint-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--m3-space-75);
+  margin-block-end: var(--m3-space-75);
+}
+.endpoint-row .endpoint-select {
+  flex: 0 0 120px;
+  min-inline-size: 0;
+}
+.endpoint-row .endpoint-field {
+  flex: 1 1 auto;
+  min-inline-size: 0;
 }
 .key-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: var(--m3-space-100);
+  margin-block-end: var(--m3-space-75);
 }
 .key-prefix {
-  font-family: monospace;
-  font-size: 13px;
+  font: var(--m3-typescale-body-medium);
+  font-family: var(--m3-typeface-mono);
   flex: 1;
-  min-width: 0;
+  min-inline-size: 0;
 }
 .key-active {
-  margin: 0;
   flex: 0 0 auto;
 }
-.endpoint-row .endpoint-select {
-  flex: 0 0 120px;
-  min-width: 0;
-}
-.endpoint-row .field-input {
-  flex: 1 1 auto;
-}
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--chip-bg, #eee);
-  border: 1px solid var(--border, #ccc);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
-@media (max-width: 768px) {
-  .v-data-table {
+@media (max-width: 600px) {
+  .table-card {
     display: none;
-  }
-  .mobile-cards {
-    display: block;
   }
 }
 </style>

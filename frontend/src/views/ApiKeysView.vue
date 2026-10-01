@@ -1,19 +1,20 @@
 <template>
   <div class="page">
     <PageHeader :title="$t('apiKeys.title')" :subtitle="$t('apiKeys.subtitle')">
-      <button class="btn-primary" @click="openCreateDialog">
-        <v-icon size="15">mdi-plus</v-icon>
+      <OrButton variant="filled" @click="openCreateDialog">
+        <template #leading>
+          <OrIcon name="add" :size="18" />
+        </template>
         {{ $t("apiKeys.issueKey") }}
-      </button>
+      </OrButton>
     </PageHeader>
 
-    <v-data-table
+    <OrDataTable
       :headers="headers"
       :items="store.apiKeys"
       :loading="store.loading"
       density="comfortable"
-      hide-default-footer
-      :items-per-page="-1"
+      :label="$t('apiKeys.title')"
     >
       <template #item.key_prefix="{ item }">
         <MonoTag>{{ item.key_prefix }}</MonoTag>
@@ -44,117 +45,85 @@
       </template>
       <template #item.actions="{ item }">
         <div class="row-actions">
-          <button
+          <OrIconButton
             v-if="item.is_active"
-            class="row-btn row-btn--danger"
-            title="Revoke key"
+            icon="block"
+            size="sm"
+            tone="danger"
+            :label="$t('apiKeys.revoke')"
             @click="handleDelete(item.id)"
-          >
-            <v-icon size="15">mdi-block-helper</v-icon>
-          </button>
+          />
         </div>
       </template>
       <template #no-data>
-        <EmptyState icon="mdi-key-off-outline" :text="$t('apiKeys.noKeys')" />
+        <EmptyState icon="key_off" :text="$t('apiKeys.noKeys')" />
       </template>
-    </v-data-table>
+    </OrDataTable>
 
     <!-- Create dialog -->
-    <v-dialog
+    <OrDialog
       v-model="createDialog"
-      :max-width="isMobile ? undefined : 460"
+      :width="isMobile ? undefined : 460"
       :fullscreen="isMobile"
+      :title="$t('apiKeys.issueNew')"
     >
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title">{{ $t("apiKeys.issueNew") }}</h2>
-          <button class="dialog-close" @click="createDialog = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
-        </div>
-        <div class="dialog-body">
-          <div class="field-group">
-            <label class="field-label">{{ $t("apiKeys.keyName") }}</label>
-            <input
-              v-model="form.name"
-              class="field-input"
-              placeholder="My App Key"
-            />
-          </div>
-          <div class="field-group">
-            <label class="field-label">{{ $t("apiKeys.rateLimitRpm") }}</label>
-            <input
-              v-model.number="form.rate_limit_rpm"
-              type="number"
-              class="field-input"
-              placeholder="0 = unlimited"
-            />
-            <span class="field-hint">{{ $t("apiKeys.rateLimitHint") }}</span>
-          </div>
-          <div v-if="dialogError" class="alert alert--error">
-            <v-icon size="14">mdi-alert-circle-outline</v-icon>
-            {{ dialogError }}
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-ghost" @click="createDialog = false">
-            {{ $t("common.cancel") }}
-          </button>
-          <button
-            class="btn-primary"
-            @click="handleCreate"
-            :disabled="creating"
-          >
-            <span v-if="!creating">{{ $t("common.create") }}</span>
-            <span v-else class="btn-spinner" />
-          </button>
-        </div>
+      <div class="dialog-stack">
+        <OrTextField
+          v-model="form.name"
+          :label="$t('apiKeys.keyName')"
+          placeholder="My App Key"
+        />
+        <OrTextField
+          v-model.number="form.rate_limit_rpm"
+          type="number"
+          :label="$t('apiKeys.rateLimitRpm')"
+          :hint="$t('apiKeys.rateLimitHint')"
+          placeholder="0 = unlimited"
+        />
+        <AppAlert v-if="dialogError" variant="error">{{
+          dialogError
+        }}</AppAlert>
       </div>
-    </v-dialog>
+      <template #footer>
+        <OrButton variant="text" @click="createDialog = false">
+          {{ $t("common.cancel") }}
+        </OrButton>
+        <OrButton :loading="creating" @click="handleCreate">
+          {{ $t("common.create") }}
+        </OrButton>
+      </template>
+    </OrDialog>
 
     <!-- Show key dialog -->
-    <v-dialog
+    <OrDialog
       v-model="showKey"
-      :max-width="isMobile ? undefined : 500"
+      :width="isMobile ? undefined : 500"
       :fullscreen="isMobile"
+      :title="$t('apiKeys.keyCreated')"
     >
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2 class="dialog-title" style="color: #2ec4b6">
-            {{ $t("apiKeys.keyCreated") }}
-          </h2>
-          <button class="dialog-close" @click="showKey = false">
-            <v-icon size="18">mdi-close</v-icon>
-          </button>
-        </div>
-        <div class="dialog-body">
-          <p class="reveal-note">{{ $t("apiKeys.saveKeyNote") }}</p>
-          <div class="key-reveal">
-            <code class="key-value">{{ newKey }}</code>
-            <button
-              class="copy-btn"
-              @click="copyKey"
-              :class="{ 'copy-btn--copied': copied }"
-            >
-              <v-icon size="15">{{
-                copied ? "mdi-check" : "mdi-content-copy"
-              }}</v-icon>
-            </button>
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button
-            class="btn-primary"
-            @click="
-              showKey = false;
-              createDialog = false;
-            "
-          >
-            {{ $t("common.done") }}
-          </button>
+      <div class="dialog-stack">
+        <p class="reveal-note">{{ $t("apiKeys.saveKeyNote") }}</p>
+        <div class="key-reveal">
+          <code class="key-value">{{ newKey }}</code>
+          <OrIconButton
+            :icon="copied ? 'check' : 'content_copy'"
+            :variant="copied ? 'tonal' : 'standard'"
+            :label="$t('common.copy')"
+            @click="copyKey"
+          />
         </div>
       </div>
-    </v-dialog>
+      <template #footer>
+        <OrButton
+          @click="
+            showKey = false;
+            createDialog = false;
+          "
+        >
+          {{ $t("common.done") }}
+        </OrButton>
+      </template>
+    </OrDialog>
   </div>
 </template>
 
@@ -166,6 +135,7 @@ import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusChip from "../components/StatusChip.vue";
 import MonoTag from "../components/MonoTag.vue";
+import AppAlert from "../components/AppAlert.vue";
 import { useMobile } from "../composables/useMobile";
 
 const { t } = useI18n();
@@ -206,6 +176,9 @@ async function handleCreate() {
       form.value.rate_limit_rpm,
     );
     newKey.value = result.plain_key;
+    // Close the form before revealing the key: two focus-trapping dialogs open
+    // at once fight over focus, and each would render the same title id.
+    createDialog.value = false;
     showKey.value = true;
     await store.fetch();
   } catch (e: any) {
@@ -236,75 +209,37 @@ onMounted(() => {
 <style scoped>
 @import "../styles/page-shared.css";
 
-.dim-text {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.825rem;
-  color: #7c7a75;
-}
-.mono-val {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.82rem;
-  color: #e8e6e1;
-}
-.field-hint {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.75rem;
-  color: #4a4844;
-  padding-left: 2px;
+.dialog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m3-space-150);
 }
 
 .reveal-note {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.825rem;
-  color: #7c7a75;
-  margin: 0 0 12px;
+  margin: 0;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-body-small);
+  letter-spacing: var(--m3-typescale-body-small-tracking);
 }
 .key-reveal {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #1a1a1f;
-  border: 1px solid rgba(46, 196, 182, 0.25);
-  border-radius: 9px;
-  padding: 10px 14px;
+  gap: var(--m3-space-100);
+  padding: var(--m3-space-150) var(--m3-space-200);
+  background: var(--m3-color-surface-container-high);
+  border: 1px solid
+    color-mix(in srgb, var(--m3-color-primary) 25%, transparent);
+  border-radius: var(--m3-shape-md);
 }
 .key-value {
   flex: 1;
-  font-family: "JetBrains Mono", monospace !important;
-  font-size: 0.8rem !important;
-  color: #2ec4b6 !important;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--m3-color-primary);
+  font-family: var(--m3-typeface-mono);
+  font-size: var(--m3-typescale-body-small);
   word-break: break-all;
-}
-.copy-btn {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(46, 196, 182, 0.1);
-  border: 1px solid rgba(46, 196, 182, 0.2);
-  border-radius: 6px;
-  cursor: pointer;
-  color: #2ec4b6;
-  transition: all 0.15s;
-}
-.copy-btn:hover {
-  background: rgba(46, 196, 182, 0.18);
-}
-.copy-btn--copied {
-  color: #e8a020;
-  border-color: rgba(232, 160, 32, 0.3);
-  background: rgba(232, 160, 32, 0.08);
-}
-
-@media (max-width: 768px) {
-  .v-data-table {
-    display: block;
-  }
 }
 </style>

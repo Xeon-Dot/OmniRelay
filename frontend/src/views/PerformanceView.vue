@@ -1,61 +1,61 @@
 <template>
   <div class="page">
     <PageHeader :title="$t('performance.title')" :subtitle="$t('performance.subtitle')">
-      <button class="btn-tonal" :disabled="store.loading" @click="load">
-        <v-icon size="15">mdi-refresh</v-icon>
+      <OrButton variant="tonal" :loading="store.loading" @click="load">
+        <template #leading>
+          <OrIcon name="refresh" :size="15" />
+        </template>
         {{ $t("common.refresh") }}
-      </button>
+      </OrButton>
     </PageHeader>
 
     <!-- Filter bar -->
     <div class="filter-bar">
       <div class="filter-col">
-        <label class="field-label">{{ $t("performance.provider") }}</label>
-        <select v-model="filters.provider_id" class="field-select">
-          <option value="">{{ $t("performance.allProviders") }}</option>
-          <option v-for="p in providersStore.providers" :key="p.id" :value="p.id">
-            {{ p.name }}
-          </option>
-        </select>
+        <OrSelect
+          v-model="filters.provider_id"
+          :label="$t('performance.provider')"
+          :options="[
+            { value: '', label: $t('performance.allProviders') },
+            ...providersStore.providers.map((p) => ({
+              value: String(p.id),
+              label: p.name,
+            })),
+          ]"
+        />
       </div>
       <div class="filter-col">
-        <label class="field-label">{{ $t("performance.from") }}</label>
-        <input v-model="filters.from" type="date" class="field-input field-input--date" />
+        <OrTextField v-model="filters.from" type="date" :label="$t('performance.from')" />
       </div>
       <div class="filter-col">
-        <label class="field-label">{{ $t("performance.to") }}</label>
-        <input v-model="filters.to" type="date" class="field-input field-input--date" />
+        <OrTextField v-model="filters.to" type="date" :label="$t('performance.to')" />
       </div>
       <div class="filter-col filter-col--narrow">
-        <label class="field-label">{{ $t("performance.granularity") }}</label>
-        <select v-model="filters.granularity" class="field-select">
-          <option value="">{{ $t("performance.auto") }}</option>
-          <option value="minute">Minute</option>
-          <option value="hour">Hour</option>
-          <option value="day">Day</option>
-        </select>
+        <OrSelect
+          v-model="filters.granularity"
+          :label="$t('performance.granularity')"
+          :options="[
+            { value: '', label: $t('performance.auto') },
+            { value: 'minute', label: 'Minute' },
+            { value: 'hour', label: 'Hour' },
+            { value: 'day', label: 'Day' },
+          ]"
+        />
       </div>
-      <div class="filter-col filter-col--narrow">
-        <label class="field-label">&nbsp;</label>
-        <div class="preset-row">
-          <button
-            v-for="p in presets"
-            :key="p.key"
-            class="preset-chip"
-            :class="{ 'preset-chip--active': preset === p.key }"
-            @click="applyPreset(p.key)"
-          >
-            {{ p.label }}
-          </button>
-        </div>
+      <div class="filter-col filter-col--narrow filter-col--preset">
+        <OrSegmentedButton
+          v-model="preset"
+          size="sm"
+          :options="presets.map((p) => ({ value: p.key, label: p.label }))"
+          @update:model-value="applyPreset"
+        />
       </div>
-      <button class="btn-primary filter-submit" :disabled="store.loading" @click="load">
-        <span v-if="!store.loading">{{ $t("common.apply") }}</span>
-        <span v-else class="btn-spinner" />
-      </button>
+      <OrButton class="filter-submit" :loading="store.loading" @click="load">
+        {{ $t("common.apply") }}
+      </OrButton>
     </div>
 
-    <p v-if="store.error" class="alert alert--error alert--page">{{ store.error }}</p>
+    <AppAlert v-if="store.error" variant="error" page>{{ store.error }}</AppAlert>
 
     <template v-if="store.data">
       <!-- Summary cards -->
@@ -97,14 +97,14 @@
           <h2 class="chart-heading">{{ $t("performance.throughput") }}</h2>
           <div class="chart-area">
             <Line v-if="store.data.timeseries.length" :data="throughputChart" :options="throughputOptions" />
-            <EmptyState v-else icon="mdi-chart-line-variant" :text="$t('performance.noData')" />
+            <EmptyState v-else icon="show_chart" :text="$t('performance.noData')" />
           </div>
         </div>
         <div class="table-card chart-section">
           <h2 class="chart-heading">{{ $t("performance.latency") }}</h2>
           <div class="chart-area">
             <Line v-if="store.data.timeseries.length" :data="latencyChart" :options="latencyOptions" />
-            <EmptyState v-else icon="mdi-chart-line-variant" :text="$t('performance.noData')" />
+            <EmptyState v-else icon="show_chart" :text="$t('performance.noData')" />
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@
       <div class="breakdown-row">
         <div class="table-card breakdown-card">
           <h2 class="chart-heading">{{ $t("performance.byProvider") }}</h2>
-          <div class="table-scroll">
+          <div class="table-scroll" tabindex="0" :aria-label="$t('performance.byProvider')">
             <table v-if="store.data.by_provider.length" class="perf-table">
               <thead>
                 <tr>
@@ -134,13 +134,13 @@
                 </tr>
               </tbody>
             </table>
-            <EmptyState v-else icon="mdi-chart-line-variant" :text="$t('performance.noData')" small />
+            <EmptyState v-else icon="show_chart" :text="$t('performance.noData')" small />
           </div>
         </div>
 
         <div class="table-card breakdown-card">
           <h2 class="chart-heading">{{ $t("performance.byModel") }}</h2>
-          <div class="table-scroll">
+          <div class="table-scroll" tabindex="0" :aria-label="$t('performance.byModel')">
             <table v-if="store.data.by_model.length" class="perf-table">
               <thead>
                 <tr>
@@ -161,14 +161,14 @@
                 </tr>
               </tbody>
             </table>
-            <EmptyState v-else icon="mdi-chart-line-variant" :text="$t('performance.noData')" small />
+            <EmptyState v-else icon="show_chart" :text="$t('performance.noData')" small />
           </div>
         </div>
       </div>
 
       <div class="table-card breakdown-card">
         <h2 class="chart-heading">{{ $t("performance.topModels") }}</h2>
-        <div class="table-scroll">
+        <div class="table-scroll" tabindex="0" :aria-label="$t('performance.topModels')">
           <table v-if="store.data.top_models_by_cost.length" class="perf-table">
             <thead>
               <tr>
@@ -187,12 +187,12 @@
               </tr>
             </tbody>
           </table>
-          <EmptyState v-else icon="mdi-chart-line-variant" :text="$t('performance.noData')" small />
+          <EmptyState v-else icon="show_chart" :text="$t('performance.noData')" small />
         </div>
       </div>
     </template>
 
-    <EmptyState v-else-if="!store.loading && !store.error" icon="mdi-chart-timeline-variant" :text="$t('performance.noData')" />
+    <EmptyState v-else-if="!store.loading && !store.error" icon="monitoring" :text="$t('performance.noData')" />
   </div>
 </template>
 
@@ -212,10 +212,12 @@ import {
 } from "chart.js";
 import { usePerformanceStore } from "../stores/performance";
 import { useProvidersStore } from "../stores/providers";
+import { useChartTheme } from "../composables/useChartTheme";
 import PageHeader from "../components/PageHeader.vue";
 import StatCard from "../components/StatCard.vue";
 import MonoTag from "../components/MonoTag.vue";
 import EmptyState from "../components/EmptyState.vue";
+import AppAlert from "../components/AppAlert.vue";
 
 ChartJS.register(
   CategoryScale,
@@ -230,9 +232,10 @@ ChartJS.register(
 const { t } = useI18n();
 const store = usePerformanceStore();
 const providersStore = useProvidersStore();
+const { palette } = useChartTheme();
 
 const filters = reactive({
-  provider_id: "" as string | number,
+  provider_id: "",
   from: "",
   to: "",
   granularity: "",
@@ -281,7 +284,10 @@ function fmtBucket(b: string): string {
   return b.slice(5, 16);
 }
 
-function applyPreset(key: string) {
+/** Segmented buttons emit `string | string[]`; this group is single-select. */
+function applyPreset(value: string | string[]) {
+  const key = Array.isArray(value) ? value[0] : value;
+  if (!key) return;
   applyingPreset = true;
   preset.value = key;
   const now = new Date();
@@ -317,6 +323,29 @@ watch(filters, () => {
   preset.value = "";
 });
 
+/**
+ * Blend a token colour into a translucent hex (#RRGGBBAA) for chart fills.
+ * Canvas cannot resolve CSS custom properties or `color-mix()`, and every
+ * value here still originates from a token — nothing is hard-coded.
+ */
+function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return color;
+  const channel = Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${hex}${channel}`;
+}
+
+/** Canvas cannot read CSS custom properties — resolve the typeface tokens once. */
+function typefaceToken(name: string): string {
+  if (typeof window === "undefined") return "";
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+const plainTypeface = typefaceToken("--m3-typeface-plain");
+const monoTypeface = typefaceToken("--m3-typeface-mono");
+
 const bucketLabels = computed(() =>
   (store.data?.timeseries ?? []).map((b) => fmtBucket(b.bucket)),
 );
@@ -327,8 +356,8 @@ const throughputChart = computed(() => ({
     {
       label: t("performance.rpm"),
       data: store.data?.timeseries.map((b) => b.rpm) ?? [],
-      borderColor: "#2ec4b6",
-      backgroundColor: "rgba(46, 196, 182, 0.06)",
+      borderColor: palette.value.primary,
+      backgroundColor: withAlpha(palette.value.primary, 0.06),
       fill: true,
       tension: 0.35,
       pointRadius: 2,
@@ -339,8 +368,8 @@ const throughputChart = computed(() => ({
     {
       label: t("performance.tpm"),
       data: store.data?.timeseries.map((b) => b.tpm) ?? [],
-      borderColor: "#7b61ff",
-      backgroundColor: "rgba(123, 97, 255, 0.04)",
+      borderColor: palette.value.tertiary,
+      backgroundColor: withAlpha(palette.value.tertiary, 0.04),
       fill: true,
       tension: 0.35,
       pointRadius: 2,
@@ -357,8 +386,8 @@ const latencyChart = computed(() => ({
     {
       label: "DAVG",
       data: store.data?.timeseries.map((b) => b.avg_latency_ms) ?? [],
-      borderColor: "#e8a020",
-      backgroundColor: "rgba(232, 160, 32, 0.06)",
+      borderColor: palette.value.primary,
+      backgroundColor: withAlpha(palette.value.primary, 0.06),
       fill: true,
       tension: 0.35,
       pointRadius: 2,
@@ -368,7 +397,7 @@ const latencyChart = computed(() => ({
     {
       label: t("performance.ttft"),
       data: store.data?.timeseries.map((b) => b.avg_ttft_ms) ?? [],
-      borderColor: "#2ec4b6",
+      borderColor: palette.value.tertiary,
       backgroundColor: "transparent",
       borderDash: [5, 4],
       fill: false,
@@ -381,70 +410,75 @@ const latencyChart = computed(() => ({
   ],
 }));
 
-const baseChartOptions = {
+const baseChartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: { intersect: false, mode: "index" as const },
   plugins: {
     legend: {
       labels: {
-        color: "#7c7a75",
-        font: { family: '"DM Sans", sans-serif', size: 11 },
+        color: palette.value.text,
+        font: { family: plainTypeface, size: 11 },
         usePointStyle: true,
         pointStyleWidth: 8,
         boxHeight: 6,
       },
     },
     tooltip: {
-      backgroundColor: "#1a1a1f",
-      borderColor: "rgba(232,160,32,0.25)",
+      backgroundColor: palette.value.surface,
+      borderColor: palette.value.grid,
       borderWidth: 1,
-      titleColor: "#e8e6e1",
-      bodyColor: "#7c7a75",
-      titleFont: { family: "DM Sans", size: 12 },
-      bodyFont: { family: "JetBrains Mono", size: 11 },
+      titleColor: palette.value.onSurface,
+      bodyColor: palette.value.onSurface,
+      titleFont: { family: plainTypeface, size: 12 },
+      bodyFont: { family: monoTypeface, size: 11 },
       padding: 10,
     },
   },
   scales: {
     x: {
-      grid: { color: "rgba(255,255,255,0.04)" },
-      ticks: { color: "#4a4844", font: { family: "JetBrains Mono", size: 10 }, maxRotation: 0, autoSkip: true },
+      grid: { color: withAlpha(palette.value.grid, 0.4) },
+      ticks: {
+        color: palette.value.text,
+        font: { family: monoTypeface, size: 10 },
+        maxRotation: 0,
+        autoSkip: true,
+      },
     },
   },
-};
+}));
 
-const throughputOptions = {
-  ...baseChartOptions,
+const throughputOptions = computed(() => ({
+  ...baseChartOptions.value,
   scales: {
-    ...baseChartOptions.scales,
+    ...baseChartOptions.value.scales,
     y: {
       position: "left" as const,
-      grid: { color: "rgba(255,255,255,0.04)" },
-      ticks: { color: "#2ec4b6", font: { family: "JetBrains Mono", size: 10 } },
+      grid: { color: withAlpha(palette.value.grid, 0.4) },
+      ticks: { color: palette.value.primary, font: { family: monoTypeface, size: 10 } },
     },
     y1: {
       position: "right" as const,
       grid: { drawOnChartArea: false },
-      ticks: { color: "#7b61ff", font: { family: "JetBrains Mono", size: 10 } },
+      ticks: { color: palette.value.tertiary, font: { family: monoTypeface, size: 10 } },
     },
   },
-};
+}));
 
-const latencyOptions = {
-  ...baseChartOptions,
+const latencyOptions = computed(() => ({
+  ...baseChartOptions.value,
   scales: {
-    ...baseChartOptions.scales,
+    ...baseChartOptions.value.scales,
     y: {
-      grid: { color: "rgba(255,255,255,0.04)" },
+      grid: { color: withAlpha(palette.value.grid, 0.4) },
       ticks: {
-        color: "#4a4844",
-        font: { family: "JetBrains Mono", size: 10 },
+        color: palette.value.text,
+        font: { family: monoTypeface, size: 10 },
         callback: (v: number | string) => fmtMs(Number(v)),
       },
     },
   },
-};
+}));
 
 onMounted(() => {
   providersStore.fetch();
@@ -459,59 +493,43 @@ onMounted(() => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: var(--m3-space-150);
 }
 @media (max-width: 1100px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 560px) {
+@media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.stat-value--accent { color: #7b61ff; }
-.stat-value--cache { color: #2ec4b6; }
-.stat-value--error { color: #ff5757; }
-.stat-value--dim { color: #4a4844; }
+/* value-class lands on StatCard's inner element, which carries StatCard's
+   scope id — reach it through :deep() so the accents actually paint. */
+.stats-grid :deep(.stat-value--accent) { color: var(--m3-color-primary); }
+.stats-grid :deep(.stat-value--cache) { color: var(--or-success); }
+.stats-grid :deep(.stat-value--error) { color: var(--m3-color-error); }
+.stats-grid :deep(.stat-value--dim) { color: var(--m3-color-on-surface-variant); }
 
-/* ── Presets ── */
+/* ── Filter bar extras ── */
 .filter-col--narrow {
   flex: 0 1 auto;
-  min-width: 0;
+  min-inline-size: 0;
 }
-.preset-row {
-  display: flex;
-  gap: 4px;
-}
-.preset-chip {
-  padding: 9px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: transparent;
-  color: #7c7a75;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.72rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.preset-chip:hover {
-  border-color: rgba(232, 160, 32, 0.3);
-  color: #e8a020;
-}
-.preset-chip--active {
-  background: rgba(232, 160, 32, 0.12);
-  border-color: rgba(232, 160, 32, 0.35);
-  color: #e8a020;
+/* Or fields reserve a support line below the box; lift these to sit flush
+   with the field boxes instead of the hint baseline. */
+.filter-col--preset,
+.filter-submit {
+  margin-block-end: calc(var(--m3-space-75, 6px) + 1.25rem);
 }
 
 /* ── Charts ── */
 .charts-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--m3-space-150);
 }
 @media (max-width: 900px) {
   .charts-row {
@@ -519,14 +537,13 @@ onMounted(() => {
   }
 }
 .chart-section {
-  padding: 18px 20px;
+  padding: var(--m3-space-200) var(--m3-space-300);
 }
 .chart-heading {
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #e8e6e1;
-  margin: 0 0 14px;
+  font: var(--m3-typescale-title-small);
+  letter-spacing: var(--m3-typescale-title-small-tracking);
+  color: var(--m3-color-on-surface);
+  margin: 0 0 var(--m3-space-150);
 }
 .chart-area {
   height: 240px;
@@ -537,7 +554,7 @@ onMounted(() => {
 .breakdown-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--m3-space-150);
 }
 @media (max-width: 900px) {
   .breakdown-row {
@@ -545,32 +562,32 @@ onMounted(() => {
   }
 }
 .breakdown-card {
-  padding: 18px 20px;
-}
-.table-scroll {
-  overflow-x: auto;
+  padding: var(--m3-space-200) var(--m3-space-300);
 }
 .perf-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.82rem;
+  font: var(--m3-typescale-body-medium);
+  letter-spacing: var(--m3-typescale-body-medium-tracking);
 }
 .perf-table th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
   text-align: left;
-  color: #4a4844;
-  font-weight: 500;
-  font-size: 0.68rem;
+  color: var(--m3-color-on-surface-variant);
+  font: var(--m3-typescale-label-small);
+  letter-spacing: var(--m3-typescale-label-small-tracking);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 6px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: var(--m3-space-75, 6px) var(--m3-space-150);
+  border-bottom: 1px solid var(--m3-color-outline-variant);
   white-space: nowrap;
+  background: var(--m3-color-surface-container-low);
 }
 .perf-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: #e8e6e1;
+  padding: var(--m3-space-100) var(--m3-space-150);
+  border-bottom: 1px solid var(--m3-color-outline-variant);
+  color: var(--m3-color-on-surface);
   white-space: nowrap;
 }
 .perf-table tr:last-child td {
@@ -580,20 +597,11 @@ onMounted(() => {
   text-align: right;
 }
 .mono-val {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--m3-typeface-mono);
   font-size: 0.78rem;
 }
 .cost-val {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--m3-typeface-mono);
   font-size: 0.78rem;
-  color: #2ec4b6;
-}
-
-.field-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237c7a75' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 30px;
 }
 </style>
