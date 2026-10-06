@@ -1,0 +1,25 @@
+{
+  "manifestVersion": 1,
+  "id": "2b2a79b0-0f93-419e-afe2-4b1d3f24564b",
+  "name": "OmniRelay",
+  "path": "/home/nergis/Dev/OmniRelay/.zvec-grep",
+  "rootPaths": [
+    {
+      "absolutePath": "/home/nergis/Dev/OmniRelay",
+      "recursive": true
+    }
+  ],
+  "indexPolicy": "enabled",
+  "embedding": {
+    "provider": "local",
+    "model": "potion-code-16m-v2",
+    "dimension": 256,
+    "metric": "cosine"
+  },
+  "indexVersion": 1,
+  "createdTime": 1788441411587,
+  "updatedTime": 1788441460076,
+  "embeddingRuntime": {
+    "device": "auto"
+  }
+}
