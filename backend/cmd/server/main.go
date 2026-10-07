@@ -50,17 +50,31 @@ func main() {
 
 	r := gin.Default()
 
-	// CORS: allow origins from config, fall back to defaults
+	// CORS: explicit origins from config, or same-origin-only in release
+	// mode (the SPA is served by Caddy from the same host). In dev the
+	// Vite dev server runs on a different origin, so default to it.
 	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
 	if cfg.CORSOrigins != "" {
 		allowedOrigins = splitAndTrim(cfg.CORSOrigins, ",")
+	} else if os.Getenv("GIN_MODE") == "release" {
+		// Same-origin-only in the default production install.
+		allowedOrigins = nil
 	}
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
+	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "x-api-key"},
 		AllowCredentials: true,
-	}))
+	}
+	if len(allowedOrigins) == 0 {
+		// No origins configured: accept only same-origin requests so a
+		// default install does not keep trusting localhost origins.
+		corsConfig.AllowOriginWithContextFunc = func(c *gin.Context, origin string) bool {
+			return isSameOrigin(origin, c.Request.Host)
+		}
+	} else {
+		corsConfig.AllowOrigins = allowedOrigins
+	}
+	r.Use(cors.New(corsConfig))
 
 	// Health check endpoints
 	r.GET("/health", func(c *gin.Context) {
@@ -89,6 +103,7 @@ func main() {
 			adminAuth.POST("/auth/2fa/setup", handlers.LoginRateLimit(), handlers.TwoFactorSetup(authService))
 			adminAuth.POST("/auth/2fa/enable", handlers.LoginRateLimit(), handlers.TwoFactorEnable(authService))
 			adminAuth.POST("/auth/2fa/disable", handlers.LoginRateLimit(), handlers.TwoFactorDisable(authService))
+			adminAuth.POST("/auth/ws-token", handlers.WSToken(authService))
 
 			adminAuth.GET("/providers", handlers.ListProviders(providerService, authService))
 			adminAuth.GET("/models", handlers.ListModels(modelService, authService))
@@ -194,4 +209,18 @@ func splitAndTrim(s, sep string) []string {
 		}
 	}
 	return result
+}
+
+// isSameOrigin reports whether the Origin header matches the request Host
+// (scheme aside, since browsers only send http/https origins here).
+func isSameOrigin(origin, host string) bool {
+	if origin == "" || host == "" {
+		return false
+	}
+	for _, prefix := range []string{"http://", "https://"} {
+		if strings.HasPrefix(origin, prefix) && strings.TrimPrefix(origin, prefix) == host {
+			return true
+		}
+	}
+	return false
 }

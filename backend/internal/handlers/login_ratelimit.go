@@ -88,22 +88,34 @@ func (l *loginRateLimiter) evictIfNeededLocked(justAdded string) {
 	}
 }
 
-// clientIPForRateLimit resolves the client IP for rate limiting, honoring
-// X-Forwarded-For when present (the proxy sits behind Caddy).
+// clientIPForRateLimit resolves the client IP for rate limiting.
+// X-Forwarded-For is honored only when the TCP peer is a private/loopback
+// address — i.e. the Caddy proxy in the single-container deployment. A client
+// connecting directly with a public IP cannot spoof its rate-limit bucket by
+// sending a fake X-Forwarded-For header. Behind a trusted proxy, only the
+// rightmost entry (appended by the proxy) is used; earlier entries may be
+// client-supplied.
 func clientIPForRateLimit(remoteAddr, xForwardedFor string) string {
-	if xForwardedFor != "" {
-		if idx := strings.IndexByte(xForwardedFor, ','); idx >= 0 {
-			xForwardedFor = xForwardedFor[:idx]
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+	if xForwardedFor != "" && isTrustedProxyPeer(host) {
+		if idx := strings.LastIndexByte(xForwardedFor, ','); idx >= 0 {
+			xForwardedFor = xForwardedFor[idx+1:]
 		}
 		if ip := strings.TrimSpace(xForwardedFor); ip != "" {
 			return ip
 		}
 	}
-	host, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		return remoteAddr
-	}
 	return host
+}
+
+// isTrustedProxyPeer reports whether the peer address is one we let set
+// X-Forwarded-For: loopback or RFC1918 private ranges.
+func isTrustedProxyPeer(host string) bool {
+	ip := net.ParseIP(host)
+	return ip != nil && (ip.IsLoopback() || ip.IsPrivate())
 }
 
 const (

@@ -61,6 +61,20 @@ func (s *AuthService) issueSessionToken(user models.User) (string, error) {
 	return token.SignedString([]byte(s.jwtSecret))
 }
 
+// IssueWSToken mints a short-lived JWT usable only for the /admin/ws
+// upgrade. The WS token travels in a URL query parameter and thus leaks into
+// proxy access logs, so it must be scoped and expire quickly instead of being
+// a full session token.
+func (s *AuthService) IssueWSToken(userID int64, username string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":  userID,
+		"username": username,
+		"scope":    "ws",
+		"exp":      time.Now().Add(60 * time.Second).Unix(),
+	})
+	return token.SignedString([]byte(s.jwtSecret))
+}
+
 // VerifyTwoFactor completes login: accepts a TOTP code or a single-use recovery code.
 func (s *AuthService) VerifyTwoFactor(twoFactorToken, code string) (*models.LoginResponse, error) {
 	userID, err := s.validTwoFactorToken(twoFactorToken)

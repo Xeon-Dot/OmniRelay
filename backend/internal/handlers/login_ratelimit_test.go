@@ -75,9 +75,13 @@ func TestClientIPExtraction(t *testing.T) {
 		want          string
 	}{
 		{"10.0.0.1:1234", "", "10.0.0.1"},
+		// Trusted proxy (private/loopback peer, e.g. Caddy): use XFF.
 		{"10.0.0.1:1234", "1.2.3.4", "1.2.3.4"},
-		{"10.0.0.1:1234", "1.2.3.4, 5.6.7.8", "1.2.3.4"},
-		{"", "1.2.3.4", "1.2.3.4"},
+		{"127.0.0.1:9999", "spoofed, 5.6.7.8", "5.6.7.8"},
+		{"[::1]:9999", "spoofed, real-client", "real-client"},
+		// Direct public peer: client-supplied XFF must be ignored.
+		{"8.8.8.8:1234", "1.2.3.4", "8.8.8.8"},
+		{"8.8.8.8:1234", "spoofed, 5.6.7.8", "8.8.8.8"},
 		{"", "", ""},
 	}
 	for _, tc := range cases {

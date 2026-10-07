@@ -73,6 +73,12 @@ func parseWSUserID(tokenString, jwtSecret string) (int64, error) {
 	if scope, ok := claims["scope"].(string); ok && scope == "2fa" {
 		return 0, errors.New("two-factor verification required")
 	}
+	// Only ws-scoped tokens are accepted: the token travels in a URL query
+	// parameter (which browsers require for WS) and can leak into access
+	// logs, so long-lived session tokens must not be usable here.
+	if scope, _ := claims["scope"].(string); scope != "ws" {
+		return 0, errors.New("websocket token required")
+	}
 
 	userIDFloat, ok := claims["user_id"].(float64)
 	if !ok {
@@ -88,10 +94,7 @@ func parseWSUserID(tokenString, jwtSecret string) (int64, error) {
 // accepted and requests without an Origin header are rejected.
 func isWSOriginAllowed(origin, host string, allowedOrigins []string) bool {
 	if origin == "" {
-		return len(allowedOrigins) == 0
-	}
-	if len(allowedOrigins) == 0 {
-		return true
+		return false
 	}
 	if origin == "http://"+host || origin == "https://"+host {
 		return true

@@ -165,3 +165,35 @@ func TestJWTAuthRejectsNonHS256Algorithm(t *testing.T) {
 		t.Errorf("expected 401 for HS512 token, got %d", w.Code)
 	}
 }
+
+func TestJWTAuthRejectsScopedToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Scoped tokens (2fa pending, ws upgrade) must not work as session
+	// tokens on regular admin routes.
+	for _, scope := range []string{"2fa", "ws"} {
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id":  float64(42),
+			"username": "attacker",
+			"scope":    scope,
+		})
+		tokenStr, err := token.SignedString([]byte("secret"))
+		if err != nil {
+			t.Fatalf("sign token: %v", err)
+		}
+
+		r := gin.New()
+		r.GET("/admin/test", JWTAuth("secret"), func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"ok": true})
+		})
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/test", nil)
+		req.Header.Set("Authorization", "Bearer "+tokenStr)
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401 for scope=%q token, got %d", scope, w.Code)
+		}
+	}
+}

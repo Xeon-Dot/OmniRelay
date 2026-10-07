@@ -23,6 +23,7 @@ func TestParseWSUserIDRejectsNonHS256(t *testing.T) {
 func TestParseWSUserIDAcceptsHS256(t *testing.T) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": float64(42),
+		"scope":   "ws",
 	})
 	tokenStr, err := token.SignedString([]byte("ws-secret"))
 	if err != nil {
@@ -66,6 +67,42 @@ func TestParseWSUserIDRejectsWrongSecret(t *testing.T) {
 	}
 }
 
+func TestParseWSUserIDRejectsSessionToken(t *testing.T) {
+	// A full 24h session token must not be accepted for WS: tokens leak
+	// into access logs via the ?token= query parameter, so only short-lived
+	// ws-scoped tokens are valid there.
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": float64(42),
+	})
+	tokenStr, err := token.SignedString([]byte("ws-secret"))
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+
+	if _, err := parseWSUserID(tokenStr, "ws-secret"); err == nil {
+		t.Fatal("expected session token without ws scope to be rejected")
+	}
+}
+
+func TestParseWSUserIDAcceptsWSScopeToken(t *testing.T) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": float64(42),
+		"scope":   "ws",
+	})
+	tokenStr, err := token.SignedString([]byte("ws-secret"))
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+
+	userID, err := parseWSUserID(tokenStr, "ws-secret")
+	if err != nil {
+		t.Fatalf("parseWSUserID: %v", err)
+	}
+	if userID != 42 {
+		t.Fatalf("userID = %d, want 42", userID)
+	}
+}
+
 func TestIsWSOriginAllowed(t *testing.T) {
 	allowed := []string{"http://localhost:5173", "https://relay.example.com"}
 
@@ -93,11 +130,16 @@ func TestIsWSOriginAllowed(t *testing.T) {
 	}
 }
 
-func TestIsWSOriginAllowedEmptyListAllowsAny(t *testing.T) {
-	if !isWSOriginAllowed("https://anything.example.com", "relay.example.com", nil) {
-		t.Fatal("empty allow list should permit any origin (legacy behavior)")
+func TestIsWSOriginAllowedEmptyListSameOriginOnly(t *testing.T) {
+	// Default install (no CORS_ORIGINS): only same-origin connections
+	// are accepted; a default install must not accept arbitrary origins.
+	if !isWSOriginAllowed("https://relay.example.com", "relay.example.com", nil) {
+		t.Fatal("same-origin should be permitted without an allow list")
 	}
-	if !isWSOriginAllowed("", "relay.example.com", nil) {
-		t.Fatal("empty allow list should permit requests without Origin (legacy behavior)")
+	if isWSOriginAllowed("https://anything.example.com", "relay.example.com", nil) {
+		t.Fatal("cross-origin should be rejected without an allow list")
+	}
+	if isWSOriginAllowed("", "relay.example.com", nil) {
+		t.Fatal("missing Origin should be rejected without an allow list")
 	}
 }

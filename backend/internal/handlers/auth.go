@@ -117,6 +117,21 @@ func TwoFactorVerify(svc *service.AuthService) gin.HandlerFunc {
 	}
 }
 
+// WSToken mints a short-lived token for the /admin/ws upgrade. Browsers
+// cannot set headers on a WebSocket handshake, so the token must travel in
+// the URL; a scoped 60s token limits the damage when it leaks into access
+// logs.
+func WSToken(svc *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, err := svc.IssueWSToken(c.GetInt64("user_id"), c.GetString("username"))
+		if err != nil {
+			apiresponse.AbortAdminInternal(c, "failed to issue websocket token")
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"token": token})
+	}
+}
+
 func ListUsers(svc *service.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		users, err := svc.ListUsers()

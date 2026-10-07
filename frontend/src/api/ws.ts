@@ -51,20 +51,29 @@ export function createRealtimeConnection(): RealtimeConnection {
   function connect() {
     if (!auth.token || closed) return;
 
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const url = `${proto}://${window.location.host}/admin/ws?token=${auth.token}`;
-    ws = new WebSocket(url);
+    // Browsers cannot set headers on a WebSocket handshake, so the token
+    // travels in the URL. Use a short-lived ws-scoped token fetched right
+    // before connecting instead of the session token, so a token leaked
+    // into access logs is useless within a minute.
+    api
+      .post("/auth/ws-token")
+      .then((res) => {
+        if (closed) return;
+        const proto = window.location.protocol === "https:" ? "wss" : "ws";
+        const url = `${proto}://${window.location.host}/admin/ws?token=${res.data.token}`;
+        ws = new WebSocket(url);
+        wireHandlers();
+      })
+      .catch(() => {
+        if (!closed) {
+          setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+        }
+      });
+  }
 
-    ws.onopen = () => {
-      connected = true;
-      reconnectDelay = 1000;
-      api
-        .get("/stats")
-        .then((res) => {
-          statsDeltaHandlers.forEach((cb) => cb(res.data));
-        })
-        .catch(() => {}); // best-effort refresh; a 401 is already handled by the interceptor
-    };
+  function wireHandlers() {
+    if (!ws) return;
 
     ws.onmessage = (event) => {
       try {
@@ -89,6 +98,17 @@ export function createRealtimeConnection(): RealtimeConnection {
 
     ws.onerror = () => {
       ws?.close();
+    };
+
+    ws.onopen = () => {
+      connected = true;
+      reconnectDelay = 1000;
+      api
+        .get("/stats")
+        .then((res) => {
+          statsDeltaHandlers.forEach((cb) => cb(res.data));
+        })
+        .catch(() => {}); // best-effort refresh; a 401 is already handled by the interceptor
     };
   }
 

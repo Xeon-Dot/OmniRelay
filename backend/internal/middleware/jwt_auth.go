@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -70,8 +71,9 @@ func JWTAuth(secret string) gin.HandlerFunc {
 		}
 		c.Set("user_id", int64(userID))
 		c.Set("username", username)
-		if scope, ok := claims["scope"].(string); ok && scope == "2fa" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": gin.H{"type": "authentication_error", "message": "two-factor verification required"}})
+		// Scoped tokens (2fa pending, ws upgrade) are not session tokens.
+		if scope, ok := claims["scope"].(string); ok && scope != "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": gin.H{"type": "authentication_error", "message": fmt.Sprintf("%s token not valid for this endpoint", scope)}})
 			c.Abort()
 			return
 		}

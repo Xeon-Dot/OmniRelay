@@ -36,6 +36,9 @@ COPY frontend/Caddyfile /etc/caddy/Caddyfile
 
 ENV LISTEN_ADDR=:8080
 ENV DATABASE_PATH=/app/data/omnirelay.db
+# Release mode at runtime makes config.Load() refuse to boot on default
+# JWT_SECRET/ENCRYPT_KEY (the build-time GIN_MODE does not carry over).
+ENV GIN_MODE=release
 
 EXPOSE 80
 
