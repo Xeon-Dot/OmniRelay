@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "./client";
 import { useAuthStore } from "../stores/auth";
 
 export interface UsageLogEntry {
@@ -58,9 +58,12 @@ export function createRealtimeConnection(): RealtimeConnection {
     ws.onopen = () => {
       connected = true;
       reconnectDelay = 1000;
-      axios.get("/admin/stats").then((res) => {
-        statsDeltaHandlers.forEach((cb) => cb(res.data));
-      });
+      api
+        .get("/stats")
+        .then((res) => {
+          statsDeltaHandlers.forEach((cb) => cb(res.data));
+        })
+        .catch(() => {}); // best-effort refresh; a 401 is already handled by the interceptor
     };
 
     ws.onmessage = (event) => {
