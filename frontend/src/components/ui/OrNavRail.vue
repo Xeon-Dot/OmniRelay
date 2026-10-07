@@ -232,4 +232,17 @@ const activeItem = computed(() => props.items.find((item) => isActive(item.to))?
 .or-rail--expanded .or-rail__footer {
   padding-inline: var(--m3-space-200);
 }
+
+/* The rail's accessible destination label — hidden visually, kept for AT. */
+.or-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 </style>

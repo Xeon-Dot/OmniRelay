@@ -234,7 +234,7 @@ const headers = computed(() => [
   { title: t("users.email"), key: "email" },
   { title: t("users.role"), key: "is_admin" },
   { title: t("users.created"), key: "created_at" },
-  { title: "", key: "actions", sortable: false },
+  { title: "", key: "actions", sortable: false, align: "end" as const },
 ]);
 
 const targetUser = ref<User | null>(null);
@@ -400,5 +400,12 @@ onMounted(() => {
   font-family: var(--m3-typeface-mono);
   font-size: var(--m3-typescale-body-small);
   word-break: break-all;
+}
+
+@media (max-width: 600px) {
+  /* MobileDataCard replaces the table below 600px — same as ProvidersView. */
+  .table-card {
+    display: none;
+  }
 }
 </style>

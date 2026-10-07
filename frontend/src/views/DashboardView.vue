@@ -346,6 +346,12 @@ onUnmounted(() => {
   position: relative;
   display: flex;
 }
+/* The cell owns the grid track; the card must stretch to fill it, otherwise
+   the corner icon below lands in empty space next to a content-sized card. */
+.stat-cell .stat-card {
+  flex: 1;
+  min-inline-size: 0;
+}
 .stat-cell__icon {
   position: absolute;
   inset-block-start: var(--or-pad-card);
