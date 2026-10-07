@@ -330,6 +330,39 @@ var migrations = []migration{
 		version: 17,
 		up:      ensureProviderAPIKeys,
 	},
+	{
+		version: 18,
+		up: func(tx *sql.Tx) error {
+			hasSecret, err := hasColumn(tx, "users", "totp_secret_encrypted")
+			if err != nil {
+				return err
+			}
+			if !hasSecret {
+				if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN totp_secret_encrypted TEXT NOT NULL DEFAULT ''`); err != nil {
+					return err
+				}
+			}
+			hasEnabled, err := hasColumn(tx, "users", "totp_enabled")
+			if err != nil {
+				return err
+			}
+			if !hasEnabled {
+				if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN totp_enabled BOOLEAN DEFAULT 0`); err != nil {
+					return err
+				}
+			}
+			if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS recovery_codes (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				code_hash TEXT UNIQUE NOT NULL,
+				used BOOLEAN DEFAULT 0,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)`); err != nil {
+				return err
+			}
+			return nil
+		},
+	},
 }
 
 func ensureProviderAPIKeys(tx *sql.Tx) error {

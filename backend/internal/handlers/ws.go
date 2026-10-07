@@ -70,6 +70,10 @@ func parseWSUserID(tokenString, jwtSecret string) (int64, error) {
 		return 0, errors.New("invalid token claims")
 	}
 
+	if scope, ok := claims["scope"].(string); ok && scope == "2fa" {
+		return 0, errors.New("two-factor verification required")
+	}
+
 	userIDFloat, ok := claims["user_id"].(float64)
 	if !ok {
 		return 0, errors.New("invalid token claims")

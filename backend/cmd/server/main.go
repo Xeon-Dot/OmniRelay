@@ -35,6 +35,7 @@ func main() {
 
 	authService := service.NewAuthService(db)
 	authService.SetJWTSecret(cfg.JWTSecret)
+	authService.SetEncryptKey(cfg.EncryptKey)
 	providerService := service.NewProviderService(db, cfg)
 	modelService := service.NewModelService(db)
 	modelService.SetPricingCatalog(service.NewModelsDevCatalog())
@@ -78,11 +79,17 @@ func main() {
 		admin.POST("/auth/register", handlers.LoginRateLimit(), handlers.Register(authService))
 		admin.POST("/auth/login", handlers.LoginRateLimit(), handlers.Login(authService))
 		admin.POST("/auth/reset-password", handlers.LoginRateLimit(), handlers.ResetPassword(authService))
+		admin.POST("/auth/2fa/verify", handlers.LoginRateLimit(), handlers.TwoFactorVerify(authService))
 		admin.GET("/ws", handlers.WebSocketUpgrader(cfg.JWTSecret, allowedOrigins))
 
 		adminAuth := admin.Group("")
 		adminAuth.Use(middleware.JWTAuth(cfg.JWTSecret))
 		{
+			adminAuth.GET("/auth/2fa/status", handlers.TwoFactorStatus(authService))
+			adminAuth.POST("/auth/2fa/setup", handlers.LoginRateLimit(), handlers.TwoFactorSetup(authService))
+			adminAuth.POST("/auth/2fa/enable", handlers.LoginRateLimit(), handlers.TwoFactorEnable(authService))
+			adminAuth.POST("/auth/2fa/disable", handlers.LoginRateLimit(), handlers.TwoFactorDisable(authService))
+
 			adminAuth.GET("/providers", handlers.ListProviders(providerService, authService))
 			adminAuth.GET("/models", handlers.ListModels(modelService, authService))
 			adminAuth.GET("/models/source-list", handlers.ListSourceModels(modelService))

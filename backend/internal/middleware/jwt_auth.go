@@ -70,6 +70,11 @@ func JWTAuth(secret string) gin.HandlerFunc {
 		}
 		c.Set("user_id", int64(userID))
 		c.Set("username", username)
+		if scope, ok := claims["scope"].(string); ok && scope == "2fa" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": gin.H{"type": "authentication_error", "message": "two-factor verification required"}})
+			c.Abort()
+			return
+		}
 		if isAdmin, ok := claims["is_admin"].(bool); ok {
 			c.Set("is_admin", isAdmin)
 		}

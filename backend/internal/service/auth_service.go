@@ -15,6 +15,7 @@ import (
 type AuthService struct {
 	db        *sql.DB
 	jwtSecret string
+	encryptKey string
 }
 
 func NewAuthService(db *sql.DB) *AuthService {
@@ -23,6 +24,10 @@ func NewAuthService(db *sql.DB) *AuthService {
 
 func (s *AuthService) SetJWTSecret(secret string) {
 	s.jwtSecret = secret
+}
+
+func (s *AuthService) SetEncryptKey(key string) {
+	s.encryptKey = key
 }
 
 func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error) {
@@ -76,15 +81,27 @@ func (s *AuthService) emailExists(email string) (bool, error) {
 func (s *AuthService) Login(req models.LoginRequest) (*models.LoginResponse, error) {
 	var user models.User
 	err := s.db.QueryRow(
-		"SELECT id, username, email, password_hash, is_admin, created_at FROM users WHERE email = ?",
+		"SELECT id, username, email, password_hash, is_admin, COALESCE(totp_enabled, 0), created_at FROM users WHERE email = ?",
 		req.Email,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.IsAdmin, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.IsAdmin, &user.TOTPEnabled, &user.CreatedAt)
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return nil, errors.New("invalid credentials")
+	}
+
+	if user.TOTPEnabled {
+		pending, err := s.issueTwoFactorToken(user.ID, user.Username)
+		if err != nil {
+			return nil, err
+		}
+		return &models.LoginResponse{
+			Requires2FA:    true,
+			TwoFactorToken: pending,
+			User:           user,
+		}, nil
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -106,7 +123,7 @@ func (s *AuthService) Login(req models.LoginRequest) (*models.LoginResponse, err
 }
 
 func (s *AuthService) ListUsers() ([]models.User, error) {
-	rows, err := s.db.Query("SELECT id, username, email, is_admin, created_at FROM users ORDER BY created_at")
+	rows, err := s.db.Query("SELECT id, username, email, is_admin, COALESCE(totp_enabled, 0), created_at FROM users ORDER BY created_at")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +132,7 @@ func (s *AuthService) ListUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.IsAdmin, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.IsAdmin, &u.TOTPEnabled, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

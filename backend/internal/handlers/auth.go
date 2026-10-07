@@ -47,6 +47,76 @@ func Login(svc *service.AuthService) gin.HandlerFunc {
 	}
 }
 
+func TwoFactorStatus(svc *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		enabled, err := svc.TOTPStatus(c.GetInt64("user_id"))
+		if err != nil {
+			apiresponse.AbortAdminInternal(c, err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"enabled": enabled})
+	}
+}
+
+func TwoFactorSetup(svc *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		secret, url, err := svc.SetupTOTP(c.GetInt64("user_id"))
+		if err != nil {
+			apiresponse.AbortAdminBadRequest(c, err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"secret": secret, "otpauth_url": url})
+	}
+}
+
+func TwoFactorEnable(svc *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req models.TwoFactorCodeRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			apiresponse.AbortAdminBadRequest(c, err.Error())
+			return
+		}
+		codes, err := svc.EnableTOTP(c.GetInt64("user_id"), req.Code)
+		if err != nil {
+			apiresponse.AbortAdminBadRequest(c, err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"recovery_codes": codes})
+	}
+}
+
+func TwoFactorDisable(svc *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req models.TwoFactorDisableRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			apiresponse.AbortAdminBadRequest(c, err.Error())
+			return
+		}
+		if err := svc.DisableTOTP(c.GetInt64("user_id"), req.Password, req.Code); err != nil {
+			apiresponse.AbortAdminBadRequest(c, err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "two-factor authentication disabled"})
+	}
+}
+
+func TwoFactorVerify(svc *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req models.TwoFactorVerifyRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			apiresponse.AbortAdminBadRequest(c, err.Error())
+			return
+		}
+		resp, err := svc.VerifyTwoFactor(req.TwoFactorToken, req.Code)
+		if err != nil {
+			apiresponse.AbortAdminError(c, http.StatusUnauthorized, err.Error(), "unauthorized")
+			return
+		}
+		resetLoginRateLimit(c)
+		c.JSON(http.StatusOK, resp)
+	}
+}
+
 func ListUsers(svc *service.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		users, err := svc.ListUsers()

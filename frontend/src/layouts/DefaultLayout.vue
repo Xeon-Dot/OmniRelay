@@ -56,6 +56,12 @@
         </button>
       </div>
 
+      <OrIconButton
+        :icon="'security'"
+        :label="$t('twofa.title')"
+        size="sm"
+        @click="twoFactorOpen = true"
+      />
       <button class="logout-btn" type="button" @click="handleLogout">
         <OrIcon name="logout" :size="20" />
         <span v-if="drawerExpanded" class="logout-btn__label">{{ $t("common.signOut") }}</span>
@@ -99,6 +105,8 @@
       </router-link>
     </nav>
   </OrDialog>
+
+  <TwoFactorDialog v-model="twoFactorOpen" />
 </template>
 
 <script setup lang="ts">
@@ -108,6 +116,7 @@ import { useI18n } from "vue-i18n";
 import { useAuthStore } from "../stores/auth";
 import { useThemeStore, type ThemeMode } from "../stores/theme";
 import { setLocale } from "../plugins/i18n";
+import TwoFactorDialog from "../components/TwoFactorDialog.vue";
 import logoUrl from "../assets/omnirelay-logo.svg";
 
 const auth = useAuthStore();
@@ -118,6 +127,9 @@ const { locale, t } = useI18n();
 
 /** Open state of the mobile "More" navigation sheet. */
 const navSheet = ref(false);
+
+/** Open state of the account 2FA settings dialog. */
+const twoFactorOpen = ref(false);
 
 function isActive(to: string) {
   return to === "/" ? route.path === "/" : route.path.startsWith(to);

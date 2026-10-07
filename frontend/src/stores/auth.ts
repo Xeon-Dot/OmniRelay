@@ -6,6 +6,7 @@ interface User {
   id: number;
   username: string;
   is_admin: boolean;
+  totp_enabled?: boolean;
 }
 
 function readStoredUser(): User | null {
@@ -47,10 +48,32 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
     try {
       const { data } = await api.post("/auth/login", { email, password });
+      if (data.requires_2fa) {
+        return { requires2fa: true as const, twoFactorToken: data.two_factor_token as string };
+      }
       setSession(data.token, data.user);
+      return { requires2fa: false as const };
     } catch (err: any) {
       error.value =
         err?.response?.data?.error || err?.message || "Login failed";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function verifyTwoFactor(twoFactorToken: string, code: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const { data } = await api.post("/auth/2fa/verify", {
+        two_factor_token: twoFactorToken,
+        code,
+      });
+      setSession(data.token, data.user);
+    } catch (err: any) {
+      error.value =
+        err?.response?.data?.error || err?.message || "Verification failed";
       throw err;
     } finally {
       loading.value = false;
@@ -83,6 +106,7 @@ export const useAuthStore = defineStore("auth", () => {
     loading,
     isLoggedIn,
     login,
+    verifyTwoFactor,
     register,
     logout,
     clearError,

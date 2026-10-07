@@ -1,6 +1,6 @@
 <template>
   <AuthShell :title="$t('auth.loginTitle')" :subtitle="$t('auth.loginSubtitle')">
-    <form class="auth-form" @submit.prevent="handleLogin">
+    <form v-if="!twoFactorToken" class="auth-form" @submit.prevent="handleLogin">
       <OrTextField
         v-model="email"
         type="email"
@@ -41,9 +41,31 @@
       </OrButton>
     </form>
 
+    <form v-else class="auth-form" @submit.prevent="handleTwoFactor">
+      <OrTextField
+        v-model="twoFactorCode"
+        type="text"
+        :label="$t('auth.twoFactorCode')"
+        leading-icon="security"
+        placeholder="123456"
+        autocomplete="one-time-code"
+        required
+      />
+      <div v-if="error" class="auth-error">
+        <OrIcon name="error" :size="14" />
+        {{ error }}
+      </div>
+      <OrButton type="submit" :loading="loading" block>
+        {{ $t("auth.verify") }}
+      </OrButton>
+    </form>
+
     <template #footer>
-      {{ $t("auth.noAccount") }}
-      <router-link to="/register">{{ $t("auth.createOne") }}</router-link>
+      <template v-if="!twoFactorToken">
+        {{ $t("auth.noAccount") }}
+        <router-link to="/register">{{ $t("auth.createOne") }}</router-link>
+      </template>
+      <a v-else href="#" @click.prevent="twoFactorToken = ''">{{ $t("auth.back") }}</a>
     </template>
   </AuthShell>
 </template>
@@ -63,12 +85,31 @@ const password = ref("");
 const error = ref("");
 const loading = ref(false);
 const showPw = ref(false);
+const twoFactorToken = ref("");
+const twoFactorCode = ref("");
 
 async function handleLogin() {
   loading.value = true;
   error.value = "";
   try {
-    await auth.login(email.value, password.value);
+    const res = await auth.login(email.value, password.value);
+    if (res.requires2fa) {
+      twoFactorToken.value = res.twoFactorToken;
+    } else {
+      router.push("/");
+    }
+  } catch (e: any) {
+    error.value = e.response?.data?.error || t("auth.invalidCredentials");
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function handleTwoFactor() {
+  loading.value = true;
+  error.value = "";
+  try {
+    await auth.verifyTwoFactor(twoFactorToken.value, twoFactorCode.value.trim());
     router.push("/");
   } catch (e: any) {
     error.value = e.response?.data?.error || t("auth.invalidCredentials");
